@@ -4,6 +4,7 @@ OUTPUT_DIRECTORY := _build
 
 SDK_ROOT := sdk/
 PROJ_DIR := .
+NRFJPROG := ${HOME}/tools/nrf52/nrfjprog/nrfjprog
 
 $(OUTPUT_DIRECTORY)/nrf52810_xxaa.out: \
   LINKER_SCRIPT  := nrf52.ld
@@ -45,7 +46,6 @@ SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_power_clock.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/prs/nrfx_prs.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_uarte.c \
-  $(PROJ_DIR)/main.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c \
   $(SDK_ROOT)/external/segger_rtt/SEGGER_RTT_printf.c \
@@ -59,9 +59,14 @@ SRC_FILES += \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh.c \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh_ble.c \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh_soc.c \
+  $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_twim.c \
+  $(PROJ_DIR)/main.c \
+  $(PROJ_DIR)/font.c \
+  $(PROJ_DIR)/ht16k33.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \
+  ./config \
   $(SDK_ROOT)/components/ble/ble_services/ble_ancs_c \
   $(SDK_ROOT)/components/ble/ble_services/ble_ias_c \
   $(SDK_ROOT)/components/libraries/pwm \
@@ -116,7 +121,6 @@ INC_FOLDERS += \
   $(SDK_ROOT)/components/ble/ble_services/ble_hts \
   $(SDK_ROOT)/components/libraries/crc16 \
   $(SDK_ROOT)/components/libraries/util \
-  ./config \
   $(SDK_ROOT)/components/libraries/usbd/class/cdc \
   $(SDK_ROOT)/components/libraries/csense \
   $(SDK_ROOT)/components/libraries/balloc \
@@ -243,6 +247,10 @@ help:
 	@echo		sdk_config - starting external tool for editing sdk_config.h
 	@echo		flash      - flashing binary
 
+# Make fonts?
+font.c: makefont.py
+	python $< > $@
+
 TEMPLATE_PATH := $(SDK_ROOT)/components/toolchain/gcc
 
 
@@ -255,19 +263,25 @@ $(foreach target, $(TARGETS), $(call define_target, $(target)))
 # Flash the program
 flash: $(OUTPUT_DIRECTORY)/nrf52810_xxaa.hex
 	@echo Flashing: $<
-	nrfjprog -f nrf52 --program $< --sectorerase
-	nrfjprog -f nrf52 --reset
+	$(NRFJPROG) -f nrf52 --program $< --sectorerase
+	$(NRFJPROG) -f nrf52 --reset
 
 # Flash softdevice
 flash_softdevice:
 	@echo Flashing: s112_nrf52_6.0.0_softdevice.hex
-	nrfjprog -f nrf52 --program $(SDK_ROOT)/components/softdevice/s112/hex/s112_nrf52_6.0.0_softdevice.hex --sectorerase
-	nrfjprog -f nrf52 --reset
+	$(NRFJPROG) -f nrf52 --program $(SDK_ROOT)/components/softdevice/s112/hex/s112_nrf52_6.0.0_softdevice.hex --sectorerase
+	$(NRFJPROG) -f nrf52 --reset
 
 erase:
-	nrfjprog -f nrf52 --eraseall
+	$(NRFJPROG) -f nrf52 --eraseall
 
-SDK_CONFIG_FILE := ../config/sdk_config.h
+SDK_CONFIG_FILE := ./config/sdk_config.h
 CMSIS_CONFIG_TOOL := $(SDK_ROOT)/external_tools/cmsisconfig/CMSIS_Configuration_Wizard.jar
 sdk_config:
 	java -jar $(CMSIS_CONFIG_TOOL) $(SDK_CONFIG_FILE)
+
+gdb:
+	gdb-multiarch --nh -ex 'file ./_build/nrf52810_xxaa.out' -ex 'target remote :2331'
+
+gdbserver:
+	/opt/SEGGER/JLink/JLinkGDBServer -Device nrf52832_xxaa -if swd

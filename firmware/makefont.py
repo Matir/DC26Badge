@@ -142,7 +142,7 @@ LETTERS = {
 def make_font():
     print('#include <stdint.h>')
     print('')
-    print('uint16_t font[] = {')
+    print('uint16_t fontmap[] = {')
     for i in range(128):
         ch = LETTERS.get(chr(i), 0)
         print('0x{:04x},'.format(ch))
