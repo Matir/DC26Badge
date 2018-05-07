@@ -4,6 +4,9 @@
 #include "nrf.h"
 #include "app_error.h"
 
+#include "app_scheduler.h"
+#include "app_timer.h"
+
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
@@ -12,7 +15,7 @@
 #include "nrf_sdh_ble.h"
 #include "nrfx_twim.h"
 
-#include "ht16k33.h"
+#include "led_display.h"
 
 #ifndef NRFX_TWIM0_ENABLED
 # error TWIM0 is not enabled.
@@ -48,9 +51,6 @@ static inline void twi_init(nrfx_twim_t *master) {
   };
   APP_ERROR_CHECK(nrfx_twim_init(master, &config, NULL, NULL));
   nrfx_twim_enable(master);
-
-  // Config GPIOs for these pins
-
 }
 
 static inline void ble_stack_init() {
@@ -62,6 +62,15 @@ static inline void ble_stack_init() {
   // TODO: register handlers
 }
 
+static inline void scheduler_init() {
+  // SWAG numbers
+  APP_SCHED_INIT(32, 16);
+}
+
+static inline void timer_init() {
+  app_timer_init();
+}
+
 int main(void) {
   nrfx_twim_t twi_master = NRFX_TWIM_INSTANCE(0);
 
@@ -69,6 +78,8 @@ int main(void) {
 
   NRF_LOG_INFO("Initialized logging.");
 
+  scheduler_init();
+  timer_init();
   power_management_init();
   twi_init(&twi_master);
 
@@ -79,11 +90,20 @@ int main(void) {
 
   init_led_display(&display, &twi_master, 0x70);
   display_on(&display);
-  display_text(&display, (uint8_t *)"HACKCUBS");
+  display_set_brightness(&display, 8);
+
+  NRF_LOG_INFO("Setting hack the planet!");
+  led_message default_message = {
+    .message = "HACK THE PLANET   ",
+    .update = MSG_SCROLL,
+    .speed = 8
+  };
+  display_set_message(&display, &default_message);
 
   NRF_LOG_INFO("Entering main loop...");
 
   while (1) {
+    app_sched_execute();
     if (!NRF_LOG_PROCESS())
       nrf_pwr_mgmt_run();
   }

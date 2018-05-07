@@ -62,7 +62,7 @@ SRC_FILES += \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_twim.c \
   $(PROJ_DIR)/main.c \
   $(PROJ_DIR)/font.c \
-  $(PROJ_DIR)/ht16k33.c \
+  $(PROJ_DIR)/led_display.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \
