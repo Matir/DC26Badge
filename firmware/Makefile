@@ -63,6 +63,7 @@ SRC_FILES += \
   $(PROJ_DIR)/main.c \
   $(PROJ_DIR)/font.c \
   $(PROJ_DIR)/led_display.c \
+  $(PROJ_DIR)/ble_manager.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \

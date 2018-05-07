@@ -11,11 +11,10 @@
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
 #include "nrf_pwr_mgmt.h"
-#include "nrf_sdh.h"
-#include "nrf_sdh_ble.h"
 #include "nrfx_twim.h"
 
 #include "led_display.h"
+#include "ble_manager.h"
 
 #ifndef NRFX_TWIM0_ENABLED
 # error TWIM0 is not enabled.
@@ -51,15 +50,6 @@ static inline void twi_init(nrfx_twim_t *master) {
   };
   APP_ERROR_CHECK(nrfx_twim_init(master, &config, NULL, NULL));
   nrfx_twim_enable(master);
-}
-
-static inline void ble_stack_init() {
-  APP_ERROR_CHECK(nrf_sdh_enable_request());
-  uint32_t ram_start = 0;
-  APP_ERROR_CHECK(nrf_sdh_ble_default_cfg_set(1, &ram_start));
-  APP_ERROR_CHECK(nrf_sdh_ble_enable(&ram_start));
-
-  // TODO: register handlers
 }
 
 static inline void scheduler_init() {
