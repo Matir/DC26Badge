@@ -73,14 +73,15 @@ int main(void) {
   power_management_init();
   twi_init(&twi_master);
 
-  NRF_LOG_INFO("Setting up BLE.");
-  ble_stack_init();
 
   NRF_LOG_INFO("Setting up display.");
 
   init_led_display(&display, &twi_master, 0x70);
   display_on(&display);
   display_set_brightness(&display, 8);
+
+  NRF_LOG_INFO("Setting up BLE.");
+  ble_stack_init(&display);
 
   NRF_LOG_INFO("Setting hack the planet!");
   led_message default_message = {

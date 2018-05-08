@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "led_display.h"
+
 #include "ble_gatts.h"
 #include "ble_types.h"
 
@@ -35,7 +37,7 @@
 
 #define NUM_BADGE_MESSAGES      4
 
-#define BADGE_UUID_BASE         { 0xd5, 0xc4, 0x19, 0x3c, \
+#define BADGE_SERVICE_BASE      { 0xd5, 0xc4, 0x19, 0x3c, \
                                   0x63, 0x8c, 0xf7, 0xac, \
                                   0x06, 0x47, 0x7e, 0xe8, \
                                   0x00, 0x00, 0x00, 0x00}
@@ -43,9 +45,14 @@
 #define BADGE_ONOFF_UUID        0x4242
 #define BADGE_MSG_UUID_FIRST    0x4545
 
+#define APP_ADV_FAST_INTERVAL   0x0028
+#define APP_ADV_FAST_TIMEOUT    3000
+
+#define APP_ADV_SLOW_INTERVAL   0x0c80  // 2 sec in 0.625ms time slice
+#define APP_ADV_SLOW_TIMEOUT    180000
+
 typedef struct _ble_badge_service_s ble_badge_service_t;
 
-typedef void (*ble_onoff_write_handler_t) (uint16_t, ble_badge_service_t *, uint8_t);
 typedef void (*ble_message_write_handler_t) (uint16_t, ble_badge_service_t *, uint8_t);
 
 typedef struct _ble_badge_service_s {
@@ -53,10 +60,10 @@ typedef struct _ble_badge_service_s {
   ble_gatts_char_handles_t    onoff_handles;
   ble_gatts_char_handles_t    message_handles[NUM_BADGE_MESSAGES];
   uint8_t                     uuid_type;
-  ble_onoff_write_handler_t   onoff_write_handler;
   ble_message_write_handler_t message_write_handler;
+  led_display                 *display;
 } ble_badge_service_t;
 
-void ble_stack_init();
+void ble_stack_init(led_display *disp);
 
 #endif /* _BLE_MANAGER */

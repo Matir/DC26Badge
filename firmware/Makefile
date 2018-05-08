@@ -60,6 +60,8 @@ SRC_FILES += \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh_ble.c \
   $(SDK_ROOT)/components/softdevice/common/nrf_sdh_soc.c \
   $(SDK_ROOT)/modules/nrfx/drivers/src/nrfx_twim.c \
+  $(SDK_ROOT)/components/ble/ble_advertising/ble_advertising.c \
+  $(SDK_ROOT)/components/libraries/fstorage/nrf_fstorage.c \
   $(PROJ_DIR)/main.c \
   $(PROJ_DIR)/font.c \
   $(PROJ_DIR)/led_display.c \
