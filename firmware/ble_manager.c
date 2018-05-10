@@ -184,9 +184,13 @@ static uint32_t ble_badge_add_onoff_characteristic() {
   ble_gatts_attr_md_t attr_md = {0};
   ble_gatts_attr_t    attr_value = {0};
   ble_uuid_t          ble_uuid;
+  static char char_desc[] = "ON/OFF";
 
   char_md.char_props.read = 1;
   char_md.char_props.write = 1;
+  char_md.p_char_user_desc = (uint8_t *)char_desc;
+  char_md.char_user_desc_size = strlen(char_desc);
+  char_md.char_user_desc_max_size = char_md.char_user_desc_size;
 
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);  /*TODO: add security */
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.write_perm); /*TODO: add security */
@@ -200,7 +204,7 @@ static uint32_t ble_badge_add_onoff_characteristic() {
   attr_value.init_len = sizeof(uint8_t);
   attr_value.init_offs = 0;
   attr_value.max_len = sizeof(uint8_t);
-  attr_value.p_value = NULL;
+  attr_value.p_value = &ble_badge_svc.display->on;
 
   ble_uuid.type = ble_badge_svc.uuid_type;
   ble_uuid.uuid = BADGE_ONOFF_UUID;
