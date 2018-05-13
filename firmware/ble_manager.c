@@ -245,8 +245,13 @@ static uint32_t ble_badge_add_onoff_characteristic() {
   char_md.char_user_desc_size = strlen(char_desc);
   char_md.char_user_desc_max_size = char_md.char_user_desc_size;
 
+#if BLE_SECURITY
+  BLE_GAP_CONN_SEC_MODE_SET_LESC_ENC_WITH_MITM(&attr_md.read_perm);
+  BLE_GAP_CONN_SEC_MODE_SET_LESC_ENC_WITH_MITM(&attr_md.write_perm);
+#else
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);  /*TODO: add security */
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.write_perm); /*TODO: add security */
+#endif
   attr_md.vloc = BLE_GATTS_VLOC_STACK;
   attr_md.rd_auth = 0;
   attr_md.wr_auth = 0;
@@ -291,8 +296,13 @@ static uint32_t ble_badge_add_message_characteristic(led_message *msg, uint16_t 
   char_md.char_user_desc_size = strlen(char_desc);
   char_md.char_user_desc_max_size = char_md.char_user_desc_size;
 
+#if BLE_SECURITY
+  BLE_GAP_CONN_SEC_MODE_SET_LESC_ENC_WITH_MITM(&attr_md.read_perm);
+  BLE_GAP_CONN_SEC_MODE_SET_LESC_ENC_WITH_MITM(&attr_md.write_perm);
+#else
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);  /*TODO: add security */
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.write_perm); /*TODO: add security */
+#endif
   attr_md.vloc = BLE_GATTS_VLOC_USER;
   attr_md.rd_auth = 0;
   attr_md.wr_auth = 0;

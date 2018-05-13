@@ -9,6 +9,8 @@
 #include "ble_types.h"
 
 #define DEBUG_BLE 1
+// BLE_SECURITY can be disabled for debugging
+#define BLE_SECURITY 1
 
 #define DEVICE_NAME             "DC26_Badge"
 #define MANUFACTURER_NAME       "AttackerCommunity"
@@ -29,13 +31,18 @@
 #define MAX_CONN_PARAMS_UPDATE_COUNT    3
 
 #define SEC_PARAM_BOND          1
-#define SEC_PARAM_MITM          0  /* MITM Protection, TODO */
-#define SEC_PARAM_LESC          0  /* LE Secure, TODO */
+#if BLE_SECURITY
+# define SEC_PARAM_MITM         1
+# define SEC_PARAM_LESC         1
+#else
+# define SEC_PARAM_MITM         0  /* MITM Protection, TODO */
+# define SEC_PARAM_LESC         0  /* LE Secure, TODO */
+#endif
 #define SEC_PARAM_KEYPRESS      0
-#define SEC_PARAM_IO_CAPABILTIIES   BLE_GAP_IO_CAPS_NONE
+#define SEC_PARAM_IO_CAPABILTIIES   BLE_GAP_IO_CAPS_DISPLAY_YESNO
 #define SEC_PARAM_OOB           0
-#define SEC_PARAM_MIN_KEY_SIZE  7
-#define SEC_PARAM_MAX_KEY_SIZE  16
+#define SEC_PARAM_MIN_KEY_SIZE  16
+#define SEC_PARAM_MAX_KEY_SIZE  32
 
 #define BADGE_SERVICE_BASE      { 0xd5, 0xc4, 0x19, 0x3c, \
                                   0x63, 0x8c, 0xf7, 0xac, \
