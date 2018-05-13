@@ -12,9 +12,11 @@
 #include "nrf_log_default_backends.h"
 #include "nrf_pwr_mgmt.h"
 #include "nrfx_twim.h"
+#include "nrfx_gpiote.h"
 
 #include "led_display.h"
 #include "ble_manager.h"
+#include "buttons.h"
 
 #ifndef NRFX_TWIM0_ENABLED
 # error TWIM0 is not enabled.
@@ -61,6 +63,12 @@ static inline void timer_init() {
   app_timer_init();
 }
 
+static inline void gpio_init() {
+  if(!nrfx_gpiote_is_init()) {
+    APP_ERROR_CHECK(nrfx_gpiote_init());
+  }
+}
+
 int main(void) {
   nrfx_twim_t twi_master = NRFX_TWIM_INSTANCE(0);
 
@@ -72,7 +80,7 @@ int main(void) {
   timer_init();
   power_management_init();
   twi_init(&twi_master);
-
+  gpio_init();
 
   NRF_LOG_INFO("Setting up display.");
 
@@ -81,8 +89,13 @@ int main(void) {
   display_set_brightness(&display, 8);
   display_set_message(&display, NULL);
 
+  NRF_LOG_INFO("Setting up buttons.");
+  buttons_init(NULL);
+
   NRF_LOG_INFO("Setting up BLE.");
   ble_stack_init(&display);
+
+  // Check for pairing here
 
   NRF_LOG_INFO("Entering main loop...");
 

@@ -63,10 +63,12 @@ SRC_FILES += \
   $(SDK_ROOT)/components/ble/ble_advertising/ble_advertising.c \
   $(SDK_ROOT)/components/libraries/fstorage/nrf_fstorage.c \
   $(PROJ_DIR)/main.c \
+  $(PROJ_DIR)/error.c \
   $(PROJ_DIR)/font.c \
   $(PROJ_DIR)/led_display.c \
   $(PROJ_DIR)/ble_manager.c \
   $(PROJ_DIR)/ble_evt.c \
+  $(PROJ_DIR)/buttons.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \
@@ -182,6 +184,7 @@ OPT = -Os -g3
 
 # C flags common to all targets
 CFLAGS += $(OPT)
+CFLAGS += -DDEBUG
 CFLAGS += -DBOARD_PCA10040
 CFLAGS += -DCONFIG_GPIO_AS_PINRESET
 CFLAGS += -DDEVELOP_IN_NRF52832
