@@ -6,6 +6,7 @@
 
 #include "nordic_common.h"
 #include "nrf.h"
+#include "nrf_log.h"
 #include "app_error.h"
 #include "ble.h"
 #include "ble_srv_common.h"
@@ -27,11 +28,15 @@ static void ble_setup_badge_service(led_display *disp);
 static void ble_error_handler(uint32_t nrf_error);
 static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context);
 static uint32_t ble_badge_add_onoff_characteristic();
+static uint32_t ble_badge_add_message_characteristics();
+static uint32_t ble_badge_add_message_characteristic(led_message *msg, uint16_t idx);
 static void ble_badge_handle_onoff_write(uint8_t val);
 static void conn_params_init();
 static void gap_params_init();
 static void advertising_init();
 static void advertising_start();
+
+char *ble_evt_decode(uint16_t code);
 
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;
 static ble_uuid_t m_adv_uuids[1] = {0};
@@ -72,6 +77,7 @@ static void ble_setup_badge_service(led_display *disp) {
 
   // Add the characteristics
   APP_ERROR_CHECK(ble_badge_add_onoff_characteristic());
+  APP_ERROR_CHECK(ble_badge_add_message_characteristics());
 
   // Register event handler
   NRF_SDH_BLE_OBSERVER(
@@ -102,6 +108,21 @@ static void gap_params_init() {
   APP_ERROR_CHECK(sd_ble_gap_ppcp_set(&gap_conn_params));
 }
 
+/** Conn params error handler */
+static void conn_params_error_handler(uint32_t nrf_error) {
+  NRF_LOG_ERROR("Error updating connections params: %d", nrf_error);
+  APP_ERROR_HANDLER(nrf_error);
+}
+
+/** Conn params evt handler */
+static void on_conn_params_evt(ble_conn_params_evt_t *p_evt) {
+  if (p_evt->evt_type == BLE_CONN_PARAMS_EVT_FAILED) {
+    NRF_LOG_WARNING("Failed negotiating connection parameters.");
+    sd_ble_gap_disconnect(m_conn_handle, BLE_HCI_CONN_INTERVAL_UNACCEPTABLE);
+    return;
+  }
+}
+
 /** Connection parameters */
 static void conn_params_init() {
   ble_conn_params_init_t cp_init = {0};
@@ -110,8 +131,9 @@ static void conn_params_init() {
   cp_init.next_conn_params_update_delay = NEXT_CONN_PARAMS_UPDATE_DELAY;
   cp_init.max_conn_params_update_count = MAX_CONN_PARAMS_UPDATE_COUNT;
   cp_init.start_on_notify_cccd_handle = BLE_GATT_HANDLE_INVALID;
-  cp_init.error_handler = ble_error_handler;
-  cp_init.disconnect_on_fail = true;
+  cp_init.error_handler = conn_params_error_handler;
+  cp_init.evt_handler = on_conn_params_evt;
+  cp_init.disconnect_on_fail = false;  // TODO: debugging
 
   APP_ERROR_CHECK(ble_conn_params_init(&cp_init));
 }
@@ -152,17 +174,25 @@ static void advertising_start() {
   APP_ERROR_CHECK(ble_advertising_start(&m_advertising, BLE_ADV_MODE_FAST));
 }
 
+#if DEBUG_BLE
+# define EVT_DEBUG NRF_LOG_INFO
+#else
+# define EVT_DEBUG(...)
+#endif
+
 /** Handle BLE Events */
 static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
-
   switch (p_ble_evt->header.evt_id) {
     case BLE_GAP_EVT_CONNECTED:
+      EVT_DEBUG("Connected");
       m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
       break;
     case BLE_GAP_EVT_DISCONNECTED:
+      EVT_DEBUG("Disconnected");
       m_conn_handle = BLE_CONN_HANDLE_INVALID;
       break;
     case BLE_GATTS_EVT_WRITE:
+      EVT_DEBUG("GATTS Write event");
       if (p_ble_evt->evt.gatts_evt.params.write.handle ==
           ble_badge_svc.onoff_handles.value_handle) {
         ble_badge_handle_onoff_write(
@@ -170,7 +200,29 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
         break;
       }
       break;
+    case BLE_GATTS_EVT_TIMEOUT:
+      EVT_DEBUG("GATTS Timeout");
+      APP_ERROR_CHECK(sd_ble_gap_disconnect(
+            p_ble_evt->evt.gatts_evt.conn_handle,
+            BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION));
+      break;
+    case BLE_GATTC_EVT_TIMEOUT:
+      EVT_DEBUG("GATTC Timeout");
+      APP_ERROR_CHECK(sd_ble_gap_disconnect(
+            p_ble_evt->evt.gattc_evt.conn_handle,
+            BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION));
+      break;
+    case BLE_GAP_EVT_PHY_UPDATE_REQUEST:
+      EVT_DEBUG("PHY Update request.");
+      ble_gap_phys_t const phys =
+      {
+        .rx_phys = BLE_GAP_PHY_AUTO,
+        .tx_phys = BLE_GAP_PHY_AUTO,
+      };
+      APP_ERROR_CHECK(sd_ble_gap_phy_update(p_ble_evt->evt.gap_evt.conn_handle, &phys));
+      break;
     default:
+      EVT_DEBUG("Unhandled BLE event: %s", (uint32_t)ble_evt_decode(p_ble_evt->header.evt_id));
       break;
   }
 }
@@ -188,6 +240,7 @@ static uint32_t ble_badge_add_onoff_characteristic() {
 
   char_md.char_props.read = 1;
   char_md.char_props.write = 1;
+  char_md.char_props.write_wo_resp = 1;
   char_md.p_char_user_desc = (uint8_t *)char_desc;
   char_md.char_user_desc_size = strlen(char_desc);
   char_md.char_user_desc_max_size = char_md.char_user_desc_size;
@@ -213,4 +266,49 @@ static uint32_t ble_badge_add_onoff_characteristic() {
       &char_md,
       &attr_value,
       &ble_badge_svc.onoff_handles);
+}
+
+static uint32_t ble_badge_add_message_characteristics() {
+  uint32_t rv;
+  for(uint16_t i=0; i<NUM_MESSAGES; i++) {
+    if ((rv = ble_badge_add_message_characteristic(&message_set[i], i)) != 0)
+      return rv;
+  }
+  return rv;
+}
+
+static uint32_t ble_badge_add_message_characteristic(led_message *msg, uint16_t idx) {
+  ble_gatts_char_md_t char_md = {0};
+  ble_gatts_attr_md_t attr_md = {0};
+  ble_gatts_attr_t attr_value = {0};
+  ble_uuid_t ble_uuid;
+  static char char_desc[] = "Message";
+
+  char_md.char_props.read = 1;
+  char_md.char_props.write = 1;
+  char_md.char_props.write_wo_resp = 1;
+  char_md.p_char_user_desc = (uint8_t *)char_desc;
+  char_md.char_user_desc_size = strlen(char_desc);
+  char_md.char_user_desc_max_size = char_md.char_user_desc_size;
+
+  BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);  /*TODO: add security */
+  BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.write_perm); /*TODO: add security */
+  attr_md.vloc = BLE_GATTS_VLOC_USER;
+  attr_md.rd_auth = 0;
+  attr_md.wr_auth = 0;
+  attr_md.vlen = 1;
+
+  attr_value.p_uuid = &ble_uuid;
+  attr_value.p_attr_md = &attr_md;
+  attr_value.init_len = MESSAGE_SIZE;
+  attr_value.max_len = MESSAGE_SIZE;
+  attr_value.p_value = (void *)msg;
+
+  ble_uuid.type = ble_badge_svc.uuid_type;
+  ble_uuid.uuid = BADGE_MSG_UUID_FIRST + idx;
+  return sd_ble_gatts_characteristic_add(
+      ble_badge_svc.service_handle,
+      &char_md,
+      &attr_value,
+      &ble_badge_svc.message_handles[idx]);
 }

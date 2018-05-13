@@ -15,20 +15,22 @@
 
 #define MSG_MAX_LEN 35  // One extra byte is reserved for null
 
+#define NUM_MESSAGES 4
+
 typedef enum {
   MSG_STATIC,
   MSG_SCROLL,
   MSG_REPLACE,
-} message_update_t;
+} __attribute__ ((packed)) message_update_t;
 
 typedef struct _led_message {
-  // Contents of message
-  char message[MSG_MAX_LEN+1];
   // How this message updates
   message_update_t update;
   // How often this message updates
   uint16_t speed;
-} led_message;
+  // Contents of message
+  char message[MSG_MAX_LEN+1];
+} __attribute__ ((packed)) led_message;
 
 typedef struct _led_display {
   // TWI instance to use
@@ -48,6 +50,8 @@ typedef struct _led_display {
 } led_display;
 
 extern uint16_t fontmap[128];
+extern led_message message_set[NUM_MESSAGES];
+#define MESSAGE_SIZE (sizeof(message_set)/sizeof(message_set[0]))
 
 void init_led_display(led_display *disp, nrfx_twim_t *twi_instance,
     uint8_t addr);

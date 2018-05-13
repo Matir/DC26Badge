@@ -3328,7 +3328,7 @@
 // <e> NRFX_TWIM_CONFIG_LOG_ENABLED - Enables logging in the module.
 //==========================================================
 #ifndef NRFX_TWIM_CONFIG_LOG_ENABLED
-#define NRFX_TWIM_CONFIG_LOG_ENABLED 1
+#define NRFX_TWIM_CONFIG_LOG_ENABLED 0
 #endif
 // <o> NRFX_TWIM_CONFIG_LOG_LEVEL  - Default Severity level
 

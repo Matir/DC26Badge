@@ -8,6 +8,8 @@
 #include "ble_gatts.h"
 #include "ble_types.h"
 
+#define DEBUG_BLE 1
+
 #define DEVICE_NAME             "DC26_Badge"
 #define MANUFACTURER_NAME       "AttackerCommunity"
 
@@ -17,9 +19,9 @@
 #define APP_BLE_OBSERVER_PRIO   3
 #define APP_BLE_CONN_CFG_TAG    1
 
-#define MIN_CONN_INTERVAL       MSEC_TO_UNITS(100, UNIT_1_25_MS)
-#define MAX_CONN_INTERVAL       MSEC_TO_UNITS(200, UNIT_1_25_MS)
-#define SLAVE_LATENCY           0
+#define MIN_CONN_INTERVAL       MSEC_TO_UNITS(30, UNIT_1_25_MS)
+#define MAX_CONN_INTERVAL       MSEC_TO_UNITS(150, UNIT_1_25_MS)
+#define SLAVE_LATENCY           5
 #define CONN_SUP_TIMEOUT        MSEC_TO_UNITS(4000, UNIT_10_MS)
 
 #define FIRST_CONN_PARAMS_UPDATE_DELAY  APP_TIMER_TICKS(5000)
@@ -34,8 +36,6 @@
 #define SEC_PARAM_OOB           0
 #define SEC_PARAM_MIN_KEY_SIZE  7
 #define SEC_PARAM_MAX_KEY_SIZE  16
-
-#define NUM_BADGE_MESSAGES      4
 
 #define BADGE_SERVICE_BASE      { 0xd5, 0xc4, 0x19, 0x3c, \
                                   0x63, 0x8c, 0xf7, 0xac, \
@@ -58,7 +58,7 @@ typedef void (*ble_message_write_handler_t) (uint16_t, ble_badge_service_t *, ui
 typedef struct _ble_badge_service_s {
   uint16_t                    service_handle;
   ble_gatts_char_handles_t    onoff_handles;
-  ble_gatts_char_handles_t    message_handles[NUM_BADGE_MESSAGES];
+  ble_gatts_char_handles_t    message_handles[NUM_MESSAGES];
   uint8_t                     uuid_type;
   ble_message_write_handler_t message_write_handler;
   led_display                 *display;

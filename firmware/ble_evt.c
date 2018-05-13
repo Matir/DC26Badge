@@ -1,0 +1,60 @@
+#include <stdint.h>
+
+#include "ble_manager.h"
+#include "ble.h"
+#include "ble_gatts.h"
+#include "ble_gap.h"
+#include "ble_gatts.h"
+
+
+#if DEBUG_BLE
+char *ble_evt_decode(uint16_t code) {
+switch(code) {
+  case BLE_EVT_USER_MEM_REQUEST:
+    return "BLE_EVT_USER_MEM_REQUEST";
+  case BLE_EVT_USER_MEM_RELEASE:
+    return "BLE_EVT_USER_MEM_RELEASE";
+  case BLE_GAP_EVT_CONNECTED:
+    return "BLE_GAP_EVT_CONNECTED";
+  case BLE_GAP_EVT_DISCONNECTED:
+    return "BLE_GAP_EVT_DISCONNECTED";
+  case BLE_GAP_EVT_CONN_PARAM_UPDATE:
+    return "BLE_GAP_EVT_CONN_PARAM_UPDATE";
+  case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
+    return "BLE_GAP_EVT_SEC_PARAMS_REQUEST";
+  case BLE_GAP_EVT_SEC_INFO_REQUEST:
+    return "BLE_GAP_EVT_SEC_INFO_REQUEST";
+  case BLE_GAP_EVT_PASSKEY_DISPLAY:
+    return "BLE_GAP_EVT_PASSKEY_DISPLAY";
+  case BLE_GAP_EVT_KEY_PRESSED:
+    return "BLE_GAP_EVT_KEY_PRESSED";
+  case BLE_GAP_EVT_AUTH_KEY_REQUEST:
+    return "BLE_GAP_EVT_AUTH_KEY_REQUEST";
+  case BLE_GAP_EVT_LESC_DHKEY_REQUEST:
+    return "BLE_GAP_EVT_LESC_DHKEY_REQUEST";
+  case BLE_GAP_EVT_AUTH_STATUS:
+    return "BLE_GAP_EVT_AUTH_STATUS";
+  case BLE_GAP_EVT_CONN_SEC_UPDATE:
+    return "BLE_GAP_EVT_CONN_SEC_UPDATE";
+  case BLE_GAP_EVT_TIMEOUT:
+    return "BLE_GAP_EVT_TIMEOUT";
+  case BLE_GAP_EVT_RSSI_CHANGED:
+    return "BLE_GAP_EVT_RSSI_CHANGED";
+  case BLE_GAP_EVT_SEC_REQUEST:
+    return "BLE_GAP_EVT_SEC_REQUEST";
+  case BLE_GAP_EVT_SCAN_REQ_REPORT:
+    return "BLE_GAP_EVT_SCAN_REQ_REPORT";
+  case BLE_GAP_EVT_PHY_UPDATE_REQUEST:
+    return "BLE_GAP_EVT_PHY_UPDATE_REQUEST";
+  case BLE_GAP_EVT_PHY_UPDATE:
+    return "BLE_GAP_EVT_PHY_UPDATE";
+  case BLE_GAP_EVT_ADV_SET_TERMINATED:
+    return "BLE_GAP_EVT_ADV_SET_TERMINATED";
+  case BLE_GATTC_EVT_PRIM_SRVC_DISC_RSP:
+    return "BLE_GATTC_EVT_PRIM_SRVC_DISC_RSP";
+  case BLE_GATTS_EVT_WRITE:
+    return "BLE_GATTS_EVT_WRITE";
+  }
+  return "UNKNOWN EVENT";
+}
+#endif

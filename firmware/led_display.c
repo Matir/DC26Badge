@@ -21,13 +21,30 @@ static void display_update_callback(void *event_data, uint16_t event_size);
 static void display_update(led_display *disp);
 
 /**
+ * Storage for available messages.
+ * TODO: load from storage!
+ */
+led_message message_set[NUM_MESSAGES] = {
+  {
+    .message = "HACK THE PLANET   ",
+    .update = MSG_SCROLL,
+    .speed = 8,
+  },
+  {
+    .message = "HACK ALL THE THINGS   ",
+    .update = MSG_SCROLL,
+    .speed = 8,
+  }
+};
+
+/**
  * Initialize the display struct.
  */
 void init_led_display(led_display *disp, nrfx_twim_t *twi_instance,
     uint8_t addr) {
   disp->addr = addr & 0x7F;
   disp->twi_instance = twi_instance;
-  disp->cur_message = NULL;
+  disp->cur_message = &message_set[0];
   disp->msg_pos = 0;
   uint8_t enable = CMD_OSCILLATOR | 1;
   display_i2c_send(disp, &enable, 1);
@@ -60,7 +77,9 @@ static void display_timer_handler(void *context) {
   ++disp->msg_pos;
   uint16_t speed = disp->cur_message->speed;
   if (speed && (disp->msg_pos % speed == 0)) {
+#ifdef DISPLAY_DEBUG
     NRF_LOG_INFO("In display_timer_handler, disp: 0x%08x", (uint32_t)disp);
+#endif
     APP_ERROR_CHECK(app_sched_event_put(
         (void *)&disp,
         sizeof(led_display *),
@@ -70,14 +89,18 @@ static void display_timer_handler(void *context) {
 
 static void display_update_callback(void *event_data, uint16_t event_size) {
   led_display *disp = *(led_display **)(event_data);
+#ifdef DISPLAY_DEBUG
   NRF_LOG_INFO("In display_update_callback, disp: 0x%08x", (uint32_t)disp);
+#endif
   if (!disp)
     return;
   display_update(disp);
 }
 
 static void display_update(led_display *disp) {
+#ifdef DISPLAY_DEBUG
   NRF_LOG_INFO("In display_update, disp: 0x%08x", (uint32_t)disp);
+#endif
   if (!disp->cur_message)
     return;
 
@@ -159,6 +182,9 @@ ret_code_t display_mode(led_display *disp, uint8_t on, uint8_t blink) {
  * Set a new message
  */
 void display_set_message(led_display *disp, led_message *msg) {
+  if (!msg) {
+    msg = &message_set[0];
+  }
   disp->cur_message = msg;
   disp->msg_pos = 0;
   display_update(disp);
