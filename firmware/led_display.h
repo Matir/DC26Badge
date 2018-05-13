@@ -51,7 +51,6 @@ typedef struct _led_display {
 
 extern uint16_t fontmap[128];
 extern led_message message_set[NUM_MESSAGES];
-#define MESSAGE_SIZE (sizeof(message_set)/sizeof(message_set[0]))
 
 void init_led_display(led_display *disp, nrfx_twim_t *twi_instance,
     uint8_t addr);

@@ -300,8 +300,8 @@ static uint32_t ble_badge_add_message_characteristic(led_message *msg, uint16_t 
 
   attr_value.p_uuid = &ble_uuid;
   attr_value.p_attr_md = &attr_md;
-  attr_value.init_len = MESSAGE_SIZE;
-  attr_value.max_len = MESSAGE_SIZE;
+  attr_value.init_len = sizeof(led_message);
+  attr_value.max_len = sizeof(led_message);
   attr_value.p_value = (void *)msg;
 
   ble_uuid.type = ble_badge_svc.uuid_type;

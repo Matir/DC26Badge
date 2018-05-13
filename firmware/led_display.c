@@ -114,12 +114,14 @@ static void display_update(led_display *disp) {
     case MSG_SCROLL:
       memset(buf, 0, LED_DISPLAY_WIDTH);
       int len = strlen(msg->message);
-      int pos = (disp->msg_pos / msg->speed) % len;
+      // len+1 allows screen to go blank in between iterations
+      int pos = (disp->msg_pos / msg->speed) % (len+1);
       char *start = &(msg->message[pos]);
       int left = len - pos;
       if (left > LED_DISPLAY_WIDTH)
         left = LED_DISPLAY_WIDTH;
-      memcpy(buf, start, left);
+      if (left)
+        memcpy(buf, start, left);
       display_text(disp, (uint8_t *)buf);
       break;
     default:
