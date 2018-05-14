@@ -39,10 +39,11 @@
 # define SEC_PARAM_LESC         0  /* LE Secure, TODO */
 #endif
 #define SEC_PARAM_KEYPRESS      0
-#define SEC_PARAM_IO_CAPABILTIIES   BLE_GAP_IO_CAPS_DISPLAY_YESNO
+#define SEC_PARAM_IO_CAPABILITIES   BLE_GAP_IO_CAPS_DISPLAY_YESNO
 #define SEC_PARAM_OOB           0
 #define SEC_PARAM_MIN_KEY_SIZE  16
 #define SEC_PARAM_MAX_KEY_SIZE  32
+#define BLE_GAP_LESC_P256_SK_LEN 32
 
 #define BADGE_SERVICE_BASE      { 0xd5, 0xc4, 0x19, 0x3c, \
                                   0x63, 0x8c, 0xf7, 0xac, \

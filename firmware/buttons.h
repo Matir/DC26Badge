@@ -7,11 +7,11 @@
 #include "nrf_gpio.h"
 
 
-#define JOYSTICK_CENTER 0
-#define JOYSTICK_LEFT   0
-#define JOYSTICK_RIGHT  0
+#define JOYSTICK_CENTER 1
+#define JOYSTICK_LEFT   2
+#define JOYSTICK_RIGHT  3
 #define JOYSTICK_UP     19
-#define JOYSTICK_DOWN   0
+#define JOYSTICK_DOWN   4
 
 #define BUTTON_BLE_PAIR JOYSTICK_UP
 

@@ -27,11 +27,28 @@ void joystick_set_enable(uint8_t enabled) {
 }
 
 static void handle_joystick_button(uint8_t pin_no, uint8_t button_action) {
-  NRF_LOG_INFO("Joystick button pressed: %d", (uint32_t)pin_no);
   if(!joystick_enabled) {
     if (pin_no == BUTTON_BLE_PAIR)
       handle_ble_button(pin_no, button_action);
     return;
+  }
+  // TODO: support for constant scrolling?
+  if (button_action != APP_BUTTON_PUSH)
+    return;
+  NRF_LOG_INFO("Joystick button pressed: %d", (uint32_t)pin_no);
+  switch (pin_no) {
+    case JOYSTICK_UP:
+      break;
+    case JOYSTICK_DOWN:
+      break;
+    case JOYSTICK_LEFT:
+      break;
+    case JOYSTICK_RIGHT:
+      break;
+    case JOYSTICK_CENTER:
+      break;
+    default:
+      NRF_LOG_INFO("Unknown joystick movement: %d", pin_no);
   }
 }
 

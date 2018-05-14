@@ -13,11 +13,20 @@
 #include "ble_advertising.h"
 #include "ble_advdata.h"
 #include "ble_conn_params.h"
+#include "ble_lesc.h"
 #include "nrf_sdh.h"
 #include "nrf_sdh_ble.h"
 #include "nrf_sdh_soc.h"
 #include "nrf_ble_gatt.h"
 #include "nrf_ble_qwr.h"
+#include "peer_manager.h"
+#include "fds.h"
+
+#if DEBUG_BLE
+# define EVT_DEBUG NRF_LOG_INFO
+#else
+# define EVT_DEBUG(...)
+#endif
 
 
 NRF_BLE_GATT_DEF(m_gatt);
@@ -35,6 +44,7 @@ static void conn_params_init();
 static void gap_params_init();
 static void advertising_init();
 static void advertising_start();
+static void peer_manager_init();
 
 char *ble_evt_decode(uint16_t code);
 
@@ -52,6 +62,7 @@ void ble_stack_init(led_display *disp) {
   gap_params_init();
   conn_params_init();
   ble_setup_badge_service(disp);
+  peer_manager_init();
   advertising_init();
 
   APP_ERROR_CHECK(nrf_ble_gatt_init(&m_gatt, NULL));
@@ -173,12 +184,6 @@ static void advertising_start() {
   /* TODO: use bonds */
   APP_ERROR_CHECK(ble_advertising_start(&m_advertising, BLE_ADV_MODE_FAST));
 }
-
-#if DEBUG_BLE
-# define EVT_DEBUG NRF_LOG_INFO
-#else
-# define EVT_DEBUG(...)
-#endif
 
 /** Handle BLE Events */
 static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
@@ -321,4 +326,74 @@ static uint32_t ble_badge_add_message_characteristic(led_message *msg, uint16_t 
       &char_md,
       &attr_value,
       &ble_badge_svc.message_handles[idx]);
+}
+
+static void pm_evt_handler(pm_evt_t const *p_evt) {
+  switch (p_evt->evt_id) {
+    case PM_EVT_BONDED_PEER_CONNECTED:
+      EVT_DEBUG("PM_EVT_BONDED_PEER_CONNECTED: peer_id=%d", p_evt->peer_id);
+      break;
+    case PM_EVT_CONN_SEC_START:
+      EVT_DEBUG("PM_EVT_CONN_SEC_START: peer_id=%d", p_evt->peer_id);
+      break;
+    case PM_EVT_CONN_SEC_SUCCEEDED:
+      EVT_DEBUG("PM_EVT_CONN_SEC_SUCCEEDED: conn_handle=%d, procedure=%d",
+          p_evt->conn_handle, p_evt->params.conn_sec_succeeded.procedure);
+      break;
+    case PM_EVT_CONN_SEC_FAILED:
+      EVT_DEBUG("PM_EVT_CONN_SEC_FAILED: conn_handle=%d, error=%d",
+          p_evt->conn_handle, p_evt->params.conn_sec_failed.error);
+      break;
+    case PM_EVT_CONN_SEC_CONFIG_REQ:
+      // Already bonded, why did we get this?
+      {
+        pm_conn_sec_config_t conn_sec_config = {.allow_repairing = false};
+        pm_conn_sec_config_reply(p_evt->conn_handle, &conn_sec_config);
+      }
+      break;
+    case PM_EVT_STORAGE_FULL:
+      // garbage collect
+      fds_gc();
+      break;
+    case PM_EVT_PEER_DATA_UPDATE_FAILED:
+      APP_ERROR_CHECK(p_evt->params.peer_data_update_failed.error);
+      break;
+    case PM_EVT_PEER_DELETE_FAILED:
+      APP_ERROR_CHECK(p_evt->params.peer_delete_failed.error);
+      break;
+    case PM_EVT_PEERS_DELETE_FAILED:
+      APP_ERROR_CHECK(p_evt->params.peers_delete_failed_evt.error);
+      break;
+    case PM_EVT_ERROR_UNEXPECTED:
+      APP_ERROR_CHECK(p_evt->params.error_unexpected.error);
+      break;
+    default:
+      break;
+  }
+}
+
+// Setup our peer manager
+static void peer_manager_init() {
+  ble_gap_sec_params_t sec_params = {
+    .bond             = SEC_PARAM_BOND,
+    .mitm             = SEC_PARAM_MITM,
+    .lesc             = SEC_PARAM_LESC,
+    .keypress         = SEC_PARAM_KEYPRESS,
+    .io_caps          = SEC_PARAM_IO_CAPABILITIES,
+    .oob              = SEC_PARAM_OOB,
+    .min_key_size     = SEC_PARAM_MIN_KEY_SIZE,
+    .max_key_size     = SEC_PARAM_MAX_KEY_SIZE,
+    .kdist_own        = {
+      .enc = 1,
+      .id = 1,
+    },
+    .kdist_peer       = {
+      .enc = 1,
+      .id = 1,
+    }
+  };
+  APP_ERROR_CHECK(pm_init());
+  APP_ERROR_CHECK(pm_sec_params_set(&sec_params));
+  APP_ERROR_CHECK(pm_register(pm_evt_handler));
+  APP_ERROR_CHECK(ble_lesc_ecc_keypair_generate_and_set());
 }

@@ -9561,5 +9561,9 @@
 //==========================================================
 
 // <<< end of configuration section >>>
+
+#define BLE_LESC_ENABLED 1
+#define NRF_CRYPTO_RNG_AUTO_INIT_ENABLED 1
+
 #endif //SDK_CONFIG_H
 
