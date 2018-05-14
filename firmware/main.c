@@ -94,6 +94,7 @@ int main(void) {
 
   NRF_LOG_INFO("Setting up BLE.");
   ble_stack_init(&display);
+  buttons_set_ble_accept_callback(ble_match_request_respond);
 
   // Check for pairing here
 

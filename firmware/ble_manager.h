@@ -73,5 +73,6 @@ typedef struct _ble_badge_service_s {
 } ble_badge_service_t;
 
 void ble_stack_init(led_display *disp);
+void ble_match_request_respond(uint8_t matched);
 
 #endif /* _BLE_MANAGER */

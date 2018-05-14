@@ -27,7 +27,7 @@ void joystick_set_enable(uint8_t enabled) {
   joystick_enabled = enabled;
 }
 
-void buttons_set_ble_callback(ble_callback_t *ble_cb) {
+void buttons_set_ble_accept_callback(ble_callback_t *ble_cb) {
   ble_accept_cb = ble_cb;
 }
 

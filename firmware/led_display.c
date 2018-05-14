@@ -7,6 +7,8 @@
 
 #include "led_display.h"
 
+#include "ble_gap.h"
+
 #define CMD_WRITE_RAM 0x00
 #define CMD_DIMMING 0xe0
 #define CMD_OSCILLATOR 0x20
@@ -191,3 +193,26 @@ void display_set_message(led_display *disp, led_message *msg) {
   disp->msg_pos = 0;
   display_update(disp);
 }
+
+/**
+ * Display the BLE pairing code.
+ */
+void display_show_pairing_code(led_display *disp, char *pairing_code) {
+  static led_message *old_message = NULL;
+  static led_message pairing_message = {
+    .update = MSG_STATIC,
+  };
+  if (!pairing_code) {
+    if (old_message) {
+      display_set_message(disp, old_message);
+      old_message = NULL;
+    }
+    return;
+  }
+  old_message = disp->cur_message;
+  memcpy(&pairing_message.message, pairing_code, BLE_GAP_PASSKEY_LEN);
+  pairing_message.message[BLE_GAP_PASSKEY_LEN] = '\0';
+  display_set_message(disp, &pairing_message);
+}
+STATIC_ASSERT(MSG_MAX_LEN > BLE_GAP_PASSKEY_LEN,
+    "MSG_MAX_LEN smaller than BLE_GAP_PASSKEY_LEN");

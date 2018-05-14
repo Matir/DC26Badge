@@ -1,5 +1,5 @@
-#ifndef _HT16K33_H_
-#define _HT16K33_H_
+#ifndef _LED_DISPLAY_H_
+#define _LED_DISPLAY_H_
 
 #include <stdint.h>
 
@@ -60,5 +60,6 @@ ret_code_t display_mode(led_display *disp, uint8_t on, uint8_t blink);
 #define display_on(disp) display_mode((disp), 1, 0)
 #define display_off(disp) display_mode((disp), 0, 0)
 void display_set_message(led_display *disp, led_message *msg);
+void display_show_pairing_code(led_display *disp, char *pairing_code);
 
-#endif /* _HT16K33_H_H */
+#endif /* _LED_DISPLAY_H_ */

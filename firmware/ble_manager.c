@@ -232,8 +232,8 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
       break;
     case BLE_GAP_EVT_PASSKEY_DISPLAY:
       {
-        char passkey[BLE_GAP_PASSKEY_LEN + 1];
-        memcpy(passkey, p_ble_evt->evt.gap_evt.params.passkey_display.passkey,
+        char passkey[BLE_GAP_PASSKEY_LEN+1] = {0};
+        memcpy(&passkey, p_ble_evt->evt.gap_evt.params.passkey_display.passkey,
             BLE_GAP_PASSKEY_LEN);
         EVT_DEBUG("Passkey request, passkey=%s match_req=%d",
             nrf_log_push(passkey),
@@ -244,7 +244,7 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
             break;
           }
           m_pending_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
-          // DISPLAY here?
+          display_show_pairing_code(ble_badge_svc.display, passkey);
         }
       }
       break;
@@ -264,7 +264,20 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
 }
 
 void ble_match_request_respond(uint8_t matched) {
-
+  display_show_pairing_code(ble_badge_svc.display, NULL);
+  if (m_pending_conn_handle == BLE_CONN_HANDLE_INVALID)
+    return;
+  uint8_t key_type;
+  if (matched) {
+    NRF_LOG_INFO("Accepted BLE pairing.");
+    key_type = BLE_GAP_AUTH_KEY_TYPE_PASSKEY;
+  } else {
+    NRF_LOG_INFO("Failed BLE pairing.");
+    key_type = BLE_GAP_AUTH_KEY_TYPE_NONE;
+  }
+  APP_ERROR_CHECK(sd_ble_gap_auth_key_reply(
+        m_pending_conn_handle, key_type, NULL));
+  m_pending_conn_handle = BLE_CONN_HANDLE_INVALID;
 }
 
 static void ble_badge_handle_onoff_write(uint8_t val) {
