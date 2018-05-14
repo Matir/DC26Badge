@@ -49,6 +49,7 @@ static void peer_manager_init();
 char *ble_evt_decode(uint16_t code);
 
 static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;
+static uint16_t m_pending_conn_handle = BLE_CONN_HANDLE_INVALID;
 static ble_uuid_t m_adv_uuids[1] = {0};
 
 static ble_badge_service_t ble_badge_svc = {0};
@@ -136,15 +137,15 @@ static void on_conn_params_evt(ble_conn_params_evt_t *p_evt) {
 
 /** Connection parameters */
 static void conn_params_init() {
-  ble_conn_params_init_t cp_init = {0};
-
-  cp_init.first_conn_params_update_delay = FIRST_CONN_PARAMS_UPDATE_DELAY;
-  cp_init.next_conn_params_update_delay = NEXT_CONN_PARAMS_UPDATE_DELAY;
-  cp_init.max_conn_params_update_count = MAX_CONN_PARAMS_UPDATE_COUNT;
-  cp_init.start_on_notify_cccd_handle = BLE_GATT_HANDLE_INVALID;
-  cp_init.error_handler = conn_params_error_handler;
-  cp_init.evt_handler = on_conn_params_evt;
-  cp_init.disconnect_on_fail = false;  // TODO: debugging
+  ble_conn_params_init_t cp_init = {
+    .first_conn_params_update_delay   = FIRST_CONN_PARAMS_UPDATE_DELAY,
+    .next_conn_params_update_delay    = NEXT_CONN_PARAMS_UPDATE_DELAY,
+    .max_conn_params_update_count     = MAX_CONN_PARAMS_UPDATE_COUNT,
+    .start_on_notify_cccd_handle      = BLE_GATT_HANDLE_INVALID,
+    .error_handler                    = conn_params_error_handler,
+    .evt_handler                      = on_conn_params_evt,
+    .disconnect_on_fail               = true,
+  };
 
   APP_ERROR_CHECK(ble_conn_params_init(&cp_init));
 }
@@ -218,18 +219,52 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
             BLE_HCI_REMOTE_USER_TERMINATED_CONNECTION));
       break;
     case BLE_GAP_EVT_PHY_UPDATE_REQUEST:
-      EVT_DEBUG("PHY Update request.");
-      ble_gap_phys_t const phys =
       {
-        .rx_phys = BLE_GAP_PHY_AUTO,
-        .tx_phys = BLE_GAP_PHY_AUTO,
-      };
-      APP_ERROR_CHECK(sd_ble_gap_phy_update(p_ble_evt->evt.gap_evt.conn_handle, &phys));
+        EVT_DEBUG("PHY Update request.");
+        ble_gap_phys_t const phys =
+        {
+          .rx_phys = BLE_GAP_PHY_AUTO,
+          .tx_phys = BLE_GAP_PHY_AUTO,
+        };
+        APP_ERROR_CHECK(sd_ble_gap_phy_update(
+              p_ble_evt->evt.gap_evt.conn_handle, &phys));
+      }
+      break;
+    case BLE_GAP_EVT_PASSKEY_DISPLAY:
+      {
+        char passkey[BLE_GAP_PASSKEY_LEN + 1];
+        memcpy(passkey, p_ble_evt->evt.gap_evt.params.passkey_display.passkey,
+            BLE_GAP_PASSKEY_LEN);
+        EVT_DEBUG("Passkey request, passkey=%s match_req=%d",
+            nrf_log_push(passkey),
+            p_ble_evt->evt.gap_evt.params.passkey_display.match_request);
+        if (p_ble_evt->evt.gap_evt.params.passkey_display.match_request) {
+          if (m_pending_conn_handle != BLE_CONN_HANDLE_INVALID) {
+            EVT_DEBUG("Another conn handle is pending...");
+            break;
+          }
+          m_pending_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
+          // DISPLAY here?
+        }
+      }
+      break;
+    case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
+      EVT_DEBUG("SEC_PARAMS_REQUEST");
+      break;
+    case BLE_GAP_EVT_AUTH_KEY_REQUEST:
+      EVT_DEBUG("AUTH_KEY_REQUEST");
+      break;
+    case BLE_GAP_EVT_LESC_DHKEY_REQUEST:
+      EVT_DEBUG("LESC_DHKEY_REQUEST");
       break;
     default:
       EVT_DEBUG("Unhandled BLE event: %s", (uint32_t)ble_evt_decode(p_ble_evt->header.evt_id));
       break;
   }
+}
+
+void ble_match_request_respond(uint8_t matched) {
+
 }
 
 static void ble_badge_handle_onoff_write(uint8_t val) {
@@ -395,5 +430,6 @@ static void peer_manager_init() {
   APP_ERROR_CHECK(pm_init());
   APP_ERROR_CHECK(pm_sec_params_set(&sec_params));
   APP_ERROR_CHECK(pm_register(pm_evt_handler));
+  APP_ERROR_CHECK(ble_lesc_init());
   APP_ERROR_CHECK(ble_lesc_ecc_keypair_generate_and_set());
 }

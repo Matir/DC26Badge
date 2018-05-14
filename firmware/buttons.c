@@ -6,6 +6,7 @@ static void handle_ble_button(uint8_t pin_no, uint8_t button_action);
 
 static bool joystick_enabled = 0;
 static joystick_actions_t *joystick_actions = NULL;
+static ble_callback_t *ble_accept_cb = NULL;
 
 void buttons_init(joystick_actions_t *actions) {
   joystick_actions = actions;
@@ -26,9 +27,13 @@ void joystick_set_enable(uint8_t enabled) {
   joystick_enabled = enabled;
 }
 
+void buttons_set_ble_callback(ble_callback_t *ble_cb) {
+  ble_accept_cb = ble_cb;
+}
+
 static void handle_joystick_button(uint8_t pin_no, uint8_t button_action) {
   if(!joystick_enabled) {
-    if (pin_no == BUTTON_BLE_PAIR)
+    if (pin_no == BUTTON_BLE_PAIR || pin_no == BUTTON_BLE_REJECT)
       handle_ble_button(pin_no, button_action);
     return;
   }
@@ -53,5 +58,10 @@ static void handle_joystick_button(uint8_t pin_no, uint8_t button_action) {
 }
 
 static void handle_ble_button(uint8_t pin_no, uint8_t button_action) {
+  if (button_action != APP_BUTTON_PUSH)
+    return;
   NRF_LOG_INFO("BLE button pressed: %d", (uint32_t)pin_no);
+  if (!ble_accept_cb)
+    return;
+  ble_accept_cb(pin_no == BUTTON_BLE_PAIR ? 1 : 0);
 }

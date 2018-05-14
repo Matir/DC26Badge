@@ -7,13 +7,14 @@
 #include "nrf_gpio.h"
 
 
-#define JOYSTICK_CENTER 1
-#define JOYSTICK_LEFT   2
-#define JOYSTICK_RIGHT  3
-#define JOYSTICK_UP     19
-#define JOYSTICK_DOWN   4
+#define JOYSTICK_CENTER     1
+#define JOYSTICK_LEFT       2
+#define JOYSTICK_RIGHT      3
+#define JOYSTICK_UP         19
+#define JOYSTICK_DOWN       4
 
-#define BUTTON_BLE_PAIR JOYSTICK_UP
+#define BUTTON_BLE_PAIR     JOYSTICK_UP
+#define BUTTON_BLE_REJECT   JOYSTICK_DOWN
 
 typedef struct {
   void (*left)(uint8_t);
@@ -23,10 +24,13 @@ typedef struct {
   void (*center)(uint8_t);
 } joystick_actions_t;
 
+typedef void ble_callback_t(uint8_t);
+
 void buttons_init(joystick_actions_t *);
 void joystick_set_enable(uint8_t enable);
 #define joystick_enable() joystick_set_enable(true)
 #define joystick_disable() joystick_set_enable(false)
+void buttons_set_ble_accept_callback(ble_callback_t *ble_cb);
 
 #define DEF_BUTTON(n, handler) { \
   .pin_no = (n), \
