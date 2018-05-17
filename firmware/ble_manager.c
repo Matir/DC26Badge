@@ -45,6 +45,8 @@ static void gap_params_init();
 static void advertising_init();
 static void advertising_start();
 static void peer_manager_init();
+static void qwr_init();
+static uint16_t qwr_evt_handler(struct nrf_ble_qwr_t *p_qwr, nrf_ble_qwr_evt_t *p_evt);
 
 char *ble_evt_decode(uint16_t code);
 
@@ -65,6 +67,7 @@ void ble_stack_init(led_display *disp) {
   ble_setup_badge_service(disp);
   peer_manager_init();
   advertising_init();
+  qwr_init();
 
   APP_ERROR_CHECK(nrf_ble_gatt_init(&m_gatt, NULL));
 
@@ -184,6 +187,25 @@ static void advertising_init() {
   ble_advertising_conn_cfg_tag_set(&m_advertising, APP_BLE_CONN_CFG_TAG);
 }
 
+static void qwr_init() {
+  static uint8_t qwr_buf[256];
+  nrf_ble_qwr_init_t qwr_init = {
+    .error_handler = ble_error_handler,
+    .mem_buffer = {
+      .p_mem = qwr_buf,
+      .len = 256,
+    },
+    .callback = qwr_evt_handler,
+  };
+  APP_ERROR_CHECK(nrf_ble_qwr_init(&m_qwr, &qwr_init));
+}
+
+static uint16_t qwr_evt_handler(struct nrf_ble_qwr_t *p_qwr, nrf_ble_qwr_evt_t *p_evt) {
+  if (p_evt->evt_type != NRF_BLE_QWR_EVT_AUTH_REQUEST)
+    return 0;
+  return BLE_GATT_STATUS_SUCCESS;
+}
+
 /** Start the advertising */
 static void advertising_start() {
   /* TODO: use bonds */
@@ -196,6 +218,7 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
     case BLE_GAP_EVT_CONNECTED:
       EVT_DEBUG("Connected");
       m_conn_handle = p_ble_evt->evt.gap_evt.conn_handle;
+      nrf_ble_qwr_conn_handle_assign(&m_qwr, m_conn_handle);
       break;
     case BLE_GAP_EVT_DISCONNECTED:
       EVT_DEBUG("Disconnected");
@@ -375,11 +398,15 @@ static uint32_t ble_badge_add_message_characteristic(led_message *msg, uint16_t 
 
   ble_uuid.type = ble_badge_svc.uuid_type;
   ble_uuid.uuid = BADGE_MSG_UUID_FIRST + idx;
-  return sd_ble_gatts_characteristic_add(
+  ret_code_t rv = sd_ble_gatts_characteristic_add(
       ble_badge_svc.service_handle,
       &char_md,
       &attr_value,
       &ble_badge_svc.message_handles[idx]);
+  if (rv != NRF_SUCCESS)
+    return rv;
+  return nrf_ble_qwr_attr_register(
+      &m_qwr, ble_badge_svc.message_handles[idx].value_handle);
 }
 
 static void pm_evt_handler(pm_evt_t const *p_evt) {
