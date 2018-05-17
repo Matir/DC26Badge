@@ -1020,7 +1020,7 @@
 // <i> Enable this setting if you need secp192r1 (NIST 192-bit) support using micro-ecc
 
 #ifndef NRF_CRYPTO_BACKEND_MICRO_ECC_ECC_SECP192R1_ENABLED
-#define NRF_CRYPTO_BACKEND_MICRO_ECC_ECC_SECP192R1_ENABLED 1
+#define NRF_CRYPTO_BACKEND_MICRO_ECC_ECC_SECP192R1_ENABLED 0
 #endif
 
 // <q> NRF_CRYPTO_BACKEND_MICRO_ECC_ECC_SECP224R1_ENABLED  - Enable secp224r1 (NIST 224-bit) curve
@@ -1029,7 +1029,7 @@
 // <i> Enable this setting if you need secp224r1 (NIST 224-bit) support using micro-ecc
 
 #ifndef NRF_CRYPTO_BACKEND_MICRO_ECC_ECC_SECP224R1_ENABLED
-#define NRF_CRYPTO_BACKEND_MICRO_ECC_ECC_SECP224R1_ENABLED 1
+#define NRF_CRYPTO_BACKEND_MICRO_ECC_ECC_SECP224R1_ENABLED 0
 #endif
 
 // <q> NRF_CRYPTO_BACKEND_MICRO_ECC_ECC_SECP256R1_ENABLED  - Enable secp256r1 (NIST 256-bit) curve
@@ -1065,7 +1065,7 @@
 // <i> This affects parameters for all ECC API (raw keys, signature, digest, shared secret). Only for use in nRF SDK DFU!
 
 #ifndef NRF_CRYPTO_BACKEND_MICRO_ECC_LITTLE_ENDIAN_ENABLED
-#define NRF_CRYPTO_BACKEND_MICRO_ECC_LITTLE_ENDIAN_ENABLED 0
+#define NRF_CRYPTO_BACKEND_MICRO_ECC_LITTLE_ENDIAN_ENABLED 1
 #endif
 
 // </e>

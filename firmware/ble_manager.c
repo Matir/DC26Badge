@@ -72,6 +72,10 @@ void ble_stack_init(led_display *disp) {
   //TODO: Add device information service
 }
 
+void ble_main(void) {
+  APP_ERROR_CHECK(ble_lesc_service_request_handler());
+}
+
 static void ble_setup_badge_service(led_display *disp) {
   ble_badge_svc.display = disp;
 
@@ -196,6 +200,8 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
     case BLE_GAP_EVT_DISCONNECTED:
       EVT_DEBUG("Disconnected");
       m_conn_handle = BLE_CONN_HANDLE_INVALID;
+      m_pending_conn_handle = BLE_CONN_HANDLE_INVALID;
+      display_show_pairing_code(ble_badge_svc.display, NULL);
       break;
     case BLE_GATTS_EVT_WRITE:
       EVT_DEBUG("GATTS Write event");
@@ -391,6 +397,8 @@ static void pm_evt_handler(pm_evt_t const *p_evt) {
     case PM_EVT_CONN_SEC_FAILED:
       EVT_DEBUG("PM_EVT_CONN_SEC_FAILED: conn_handle=%d, error=%d",
           p_evt->conn_handle, p_evt->params.conn_sec_failed.error);
+      m_pending_conn_handle = BLE_CONN_HANDLE_INVALID;
+      display_show_pairing_code(ble_badge_svc.display, NULL);
       break;
     case PM_EVT_CONN_SEC_CONFIG_REQ:
       // Already bonded, why did we get this?

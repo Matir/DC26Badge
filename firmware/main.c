@@ -102,6 +102,7 @@ int main(void) {
 
   while (1) {
     app_sched_execute();
+    ble_main();
     if (!NRF_LOG_PROCESS())
       nrf_pwr_mgmt_run();
   }

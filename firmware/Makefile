@@ -39,9 +39,12 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/balloc/nrf_balloc.c \
   $(SDK_ROOT)/components/libraries/button/app_button.c \
   $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_ecc.c \
+  $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_ecdh.c \
   $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_rng.c \
   $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_init.c \
+  $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_shared.c \
   $(SDK_ROOT)/components/libraries/crypto/backend/micro_ecc/micro_ecc_backend_ecc.c \
+  $(SDK_ROOT)/components/libraries/crypto/backend/micro_ecc/micro_ecc_backend_ecdh.c \
   $(SDK_ROOT)/components/libraries/crypto/backend/nrf_hw/nrf_hw_backend_rng.c \
   $(SDK_ROOT)/components/libraries/crypto/backend/nrf_hw/nrf_hw_backend_init.c \
   $(SDK_ROOT)/components/libraries/experimental_log/src/nrf_log_backend_rtt.c \
@@ -320,6 +323,12 @@ SDK_CONFIG_FILE := ./config/sdk_config.h
 CMSIS_CONFIG_TOOL := $(SDK_ROOT)/external_tools/cmsisconfig/CMSIS_Configuration_Wizard.jar
 sdk_config:
 	java -jar $(CMSIS_CONFIG_TOOL) $(SDK_CONFIG_FILE)
+
+jlink:
+	/opt/SEGGER/JLink/JLinkExe -device nrf52832_xxaa -if swd -speed 4000 -autoconnect 1
+
+rtt:
+	/opt/SEGGER/JLink/JLinkRTTClient
 
 gdb:
 	gdb-multiarch --nh -ex 'file ./_build/nrf52810_xxaa.out' -ex 'target remote :2331'
