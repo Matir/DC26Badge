@@ -27,8 +27,26 @@ class AdafruitSegmentMap(SegmentMap):
     N = 13
 
 
+class BadgeSegmentMap(SegmentMap):
+    A = 9
+    B = 10
+    C = 7
+    D = 5
+    E = 0
+    F = 14
+    G1 = 8
+    G2 = 4
+    H = 13
+    J = 12
+    K = 11
+    L = 1
+    M = 3
+    N = 2
+
+
 maps = {
         'Adafruit': AdafruitSegmentMap,
+        'Badge': BadgeSegmentMap,
 }
 
 
@@ -36,7 +54,7 @@ def get_segment_map():
     if len(sys.argv) > 1:
         return SegmentMap(maps[sys.argv[1]])
     # Default
-    return SegmentMap(AdafruitSegmentMap)
+    return SegmentMap(BadgeSegmentMap)
 
 
 SEG = get_segment_map()
