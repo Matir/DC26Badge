@@ -61,13 +61,14 @@ void ble_stack_init(led_display *disp) {
   uint32_t ram_start = 0;
   APP_ERROR_CHECK(nrf_sdh_ble_default_cfg_set(APP_BLE_CONN_CFG_TAG, &ram_start));
   APP_ERROR_CHECK(nrf_sdh_ble_enable(&ram_start));
+  NRF_LOG_INFO("SDH started, setting BLE params.");
 
   gap_params_init();
   conn_params_init();
-  ble_setup_badge_service(disp);
-  peer_manager_init();
-  advertising_init();
   qwr_init();
+  peer_manager_init();
+  ble_setup_badge_service(disp);
+  advertising_init();
 
   APP_ERROR_CHECK(nrf_ble_gatt_init(&m_gatt, NULL));
 
@@ -403,8 +404,10 @@ static uint32_t ble_badge_add_message_characteristic(led_message *msg, uint16_t 
       &char_md,
       &attr_value,
       &ble_badge_svc.message_handles[idx]);
-  if (rv != NRF_SUCCESS)
+  if (rv != NRF_SUCCESS) {
+    NRF_LOG_WARNING("Error in sd_ble_gatts_characteristic_add: %d", rv);
     return rv;
+  }
   return nrf_ble_qwr_attr_register(
       &m_qwr, ble_badge_svc.message_handles[idx].value_handle);
 }

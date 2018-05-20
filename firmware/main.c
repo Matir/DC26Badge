@@ -28,8 +28,8 @@
 
 //TODO: move to board config
 
-#define PIN_SCL 14
-#define PIN_SDA 15
+#define PIN_SCL 26
+#define PIN_SDA 27
 
 led_display display = {0};
 
@@ -74,6 +74,7 @@ int main(void) {
 
   log_init();
 
+  NRF_LOG_INFO("----Restart----");
   NRF_LOG_INFO("Initialized logging.");
 
   scheduler_init();
@@ -95,8 +96,6 @@ int main(void) {
   NRF_LOG_INFO("Setting up BLE.");
   ble_stack_init(&display);
   buttons_set_ble_accept_callback(ble_match_request_respond);
-
-  // Check for pairing here
 
   NRF_LOG_INFO("Entering main loop...");
 
