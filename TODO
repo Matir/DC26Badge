@@ -1,0 +1,9 @@
+- Board
+  - Get production board
+- Firmware
+  - Finish joystick implementation
+  - Store messages in flash
+  - BLE Debugging
+  - BLE Status Indicator
+- App
+  - Build a BLE App
