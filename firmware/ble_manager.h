@@ -51,7 +51,7 @@
                                   0x00, 0x00, 0x00, 0x00}
 #define BADGE_SERVICE_UUID      0x4141
 #define BADGE_ONOFF_UUID        0x4242
-#define BADGE_MSG_UUID_FIRST    0x4545
+#define BADGE_MSG_UUID          0x4545
 
 #define APP_ADV_FAST_INTERVAL   0x0028
 #define APP_ADV_FAST_TIMEOUT    3000
@@ -75,5 +75,6 @@ typedef struct _ble_badge_service_s {
 void ble_stack_init(led_display *disp);
 void ble_match_request_respond(uint8_t matched);
 void ble_main(void);
+void ble_manager_start_advertising(void);
 
 #endif /* _BLE_MANAGER */

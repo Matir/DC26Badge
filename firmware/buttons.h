@@ -6,12 +6,25 @@
 #include "app_button.h"
 #include "nrf_gpio.h"
 
-
-#define JOYSTICK_CENTER     1
-#define JOYSTICK_LEFT       2
-#define JOYSTICK_RIGHT      3
-#define JOYSTICK_UP         19
-#define JOYSTICK_DOWN       4
+#if defined(BOARD_PROTO)
+# define JOYSTICK_CENTER     1
+# define JOYSTICK_LEFT       3
+# define JOYSTICK_RIGHT      9
+# define JOYSTICK_UP         0
+# define JOYSTICK_DOWN       2
+#elif defined(BOARD_BADGE)
+# define JOYSTICK_CENTER     1
+# define JOYSTICK_LEFT       0
+# define JOYSTICK_RIGHT      3
+# define JOYSTICK_UP         2
+# define JOYSTICK_DOWN       9
+#else
+# define JOYSTICK_CENTER     1
+# define JOYSTICK_LEFT       2
+# define JOYSTICK_RIGHT      3
+# define JOYSTICK_UP         19
+# define JOYSTICK_DOWN       4
+#endif
 
 #define BUTTON_BLE_PAIR     JOYSTICK_UP
 #define BUTTON_BLE_REJECT   JOYSTICK_DOWN

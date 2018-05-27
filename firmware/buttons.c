@@ -1,5 +1,12 @@
 #include "buttons.h"
+#include "ble_manager.h"
 #include "nrf_log.h"
+#include "app_timer.h"
+
+#define RETURN_IF(x) \
+  if((x)) return
+
+#define LONG_PRESS APP_TIMER_TICKS(2000)
 
 static void handle_joystick_button(uint8_t pin_no, uint8_t button_action);
 static void handle_ble_button(uint8_t pin_no, uint8_t button_action);
@@ -12,12 +19,10 @@ void buttons_init(joystick_actions_t *actions) {
   joystick_actions = actions;
   const static app_button_cfg_t buttons[] = {
     DEF_BUTTON(JOYSTICK_UP, handle_joystick_button),
-    /*
     DEF_BUTTON(JOYSTICK_CENTER, handle_joystick_button),
     DEF_BUTTON(JOYSTICK_LEFT, handle_joystick_button),
     DEF_BUTTON(JOYSTICK_RIGHT, handle_joystick_button),
     DEF_BUTTON(JOYSTICK_DOWN, handle_joystick_button),
-    */
   };
   APP_ERROR_CHECK(app_button_init(buttons, ARRAY_SIZE(buttons), 50));
   APP_ERROR_CHECK(app_button_enable());
@@ -32,15 +37,17 @@ void buttons_set_ble_accept_callback(ble_callback_t *ble_cb) {
 }
 
 static void handle_joystick_button(uint8_t pin_no, uint8_t button_action) {
+  static uint32_t button_down_time;
+  if (button_action == APP_BUTTON_PUSH)
+    button_down_time = app_timer_cnt_get();
   if(!joystick_enabled) {
     if (pin_no == BUTTON_BLE_PAIR || pin_no == BUTTON_BLE_REJECT)
       handle_ble_button(pin_no, button_action);
     return;
   }
-  // TODO: support for constant scrolling?
-  if (button_action != APP_BUTTON_PUSH)
-    return;
-  NRF_LOG_INFO("Joystick button pressed: %d", (uint32_t)pin_no);
+  NRF_LOG_INFO("Joystick button %s: %d",
+      (uint32_t)(button_action == APP_BUTTON_PUSH ? "pushed" : "released"),
+      (uint32_t)pin_no);
   switch (pin_no) {
     case JOYSTICK_UP:
       break;
@@ -51,6 +58,9 @@ static void handle_joystick_button(uint8_t pin_no, uint8_t button_action) {
     case JOYSTICK_RIGHT:
       break;
     case JOYSTICK_CENTER:
+      RETURN_IF(button_action == APP_BUTTON_PUSH);
+      if (app_timer_cnt_diff_compute(app_timer_cnt_get(), button_down_time) > LONG_PRESS)
+        handle_ble_button(pin_no, button_action);
       break;
     default:
       NRF_LOG_INFO("Unknown joystick movement: %d", pin_no);
@@ -58,8 +68,11 @@ static void handle_joystick_button(uint8_t pin_no, uint8_t button_action) {
 }
 
 static void handle_ble_button(uint8_t pin_no, uint8_t button_action) {
-  if (button_action != APP_BUTTON_PUSH)
+  if (pin_no == JOYSTICK_CENTER) {
+    ble_manager_start_advertising();
     return;
+  }
+  RETURN_IF(button_action != APP_BUTTON_PUSH);
   NRF_LOG_INFO("BLE button pressed: %d", (uint32_t)pin_no);
   if (!ble_accept_cb)
     return;
