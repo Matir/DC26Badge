@@ -3,6 +3,7 @@
 
 #include "ble_manager.h"
 #include "led_display.h"
+#include "buttons.h"
 
 #include "nordic_common.h"
 #include "nrf.h"
@@ -28,6 +29,12 @@
 # define EVT_DEBUG(...)
 #endif
 
+#define MASK_CHANNEL(ch_mask, ch) \
+  do { \
+    uint8_t local_channel = (ch); \
+    (ch_mask)[local_channel/8] |= (1 << (local_channel & 0x7)); \
+  } while(0);
+
 
 NRF_BLE_GATT_DEF(m_gatt);
 NRF_BLE_QWR_DEF(m_qwr);
@@ -43,7 +50,6 @@ static void ble_badge_handle_onoff_write(uint8_t val);
 static void conn_params_init();
 static void gap_params_init();
 static void advertising_init();
-static void advertising_start();
 static void peer_manager_init();
 static void qwr_init();
 static uint16_t qwr_evt_handler(struct nrf_ble_qwr_t *p_qwr, nrf_ble_qwr_evt_t *p_evt);
@@ -72,12 +78,26 @@ void ble_stack_init(led_display *disp) {
 
   APP_ERROR_CHECK(nrf_ble_gatt_init(&m_gatt, NULL));
 
-  advertising_start();
   //TODO: Add device information service
+  ble_manager_start_advertising();
 }
 
 void ble_main(void) {
   APP_ERROR_CHECK(ble_lesc_service_request_handler());
+}
+
+void ble_manager_start_advertising() {
+  NRF_LOG_INFO("Starting advertising...");
+  joystick_set_enable(0);
+  display_show_pairing_code(ble_badge_svc.display, NULL);
+  MASK_CHANNEL(m_advertising.adv_params.channel_mask, 38);
+  MASK_CHANNEL(m_advertising.adv_params.channel_mask, 39);
+  ret_code_t rv = ble_advertising_start(&m_advertising, BLE_ADV_MODE_FAST);
+  if (rv == NRF_ERROR_CONN_COUNT) {
+    NRF_LOG_INFO("Error, can't advertise while connected.");
+    return;
+  }
+  APP_ERROR_CHECK(rv);
 }
 
 static void ble_setup_badge_service(led_display *disp) {
@@ -207,12 +227,6 @@ static uint16_t qwr_evt_handler(struct nrf_ble_qwr_t *p_qwr, nrf_ble_qwr_evt_t *
   return BLE_GATT_STATUS_SUCCESS;
 }
 
-/** Start the advertising */
-static void advertising_start() {
-  /* TODO: use bonds */
-  APP_ERROR_CHECK(ble_advertising_start(&m_advertising, BLE_ADV_MODE_FAST));
-}
-
 /** Handle BLE Events */
 static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
   switch (p_ble_evt->header.evt_id) {
@@ -262,6 +276,15 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
       break;
     case BLE_GAP_EVT_PASSKEY_DISPLAY:
       {
+        // Only display passkey when advertising
+        if (m_advertising.adv_mode_current == BLE_ADV_MODE_IDLE) {
+          EVT_DEBUG("Not advertising, rejecting immediately.");
+          uint8_t key_type = BLE_GAP_AUTH_KEY_TYPE_NONE;
+          APP_ERROR_CHECK(sd_ble_gap_auth_key_reply(
+                m_pending_conn_handle, key_type, NULL));
+          break;
+        }
+        joystick_set_enable(0);
         char passkey[BLE_GAP_PASSKEY_LEN+1] = {0};
         memcpy(&passkey, p_ble_evt->evt.gap_evt.params.passkey_display.passkey,
             BLE_GAP_PASSKEY_LEN);
@@ -277,6 +300,11 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
           display_show_pairing_code(ble_badge_svc.display, passkey);
         }
       }
+      break;
+    case BLE_GAP_EVT_ADV_SET_TERMINATED:
+      EVT_DEBUG("ADV_SET_TERMINATED");
+      display_show_pairing_code(ble_badge_svc.display, NULL);
+      joystick_set_enable(1);
       break;
     case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
       EVT_DEBUG("SEC_PARAMS_REQUEST");
@@ -295,6 +323,7 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
 
 void ble_match_request_respond(uint8_t matched) {
   display_show_pairing_code(ble_badge_svc.display, NULL);
+  joystick_set_enable(1);
   if (m_pending_conn_handle == BLE_CONN_HANDLE_INVALID)
     return;
   uint8_t key_type;
@@ -398,7 +427,7 @@ static uint32_t ble_badge_add_message_characteristic(led_message *msg, uint16_t 
   attr_value.p_value = (void *)msg;
 
   ble_uuid.type = ble_badge_svc.uuid_type;
-  ble_uuid.uuid = BADGE_MSG_UUID_FIRST + idx;
+  ble_uuid.uuid = BADGE_MSG_UUID;
   ret_code_t rv = sd_ble_gatts_characteristic_add(
       ble_badge_svc.service_handle,
       &char_md,
