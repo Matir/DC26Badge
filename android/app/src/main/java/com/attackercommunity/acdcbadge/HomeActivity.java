@@ -12,6 +12,7 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -28,11 +29,16 @@ public class HomeActivity extends AppCompatActivity {
     private static final int REQUEST_PERMISSIONS = 2;
 
     private BadgeListAdapter mBadgeListAdapter;
+    private View mRootView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+        mRootView = findViewById(R.id.home_coordinator);
+        if (mRootView == null) {
+            Log.e(TAG, "rootView is null!");
+        }
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
@@ -49,8 +55,10 @@ public class HomeActivity extends AppCompatActivity {
         RecyclerView recyclerView = (RecyclerView) findViewById(R.id.badge_recycler);
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        mBadgeListAdapter = new BadgeListAdapter();
+        mBadgeListAdapter = new BadgeListAdapter(mRootView);
         recyclerView.setAdapter(mBadgeListAdapter);
+        DividerItemDecoration decoration = new DividerItemDecoration(this, recyclerView.getLayoutDirection());
+        recyclerView.addItemDecoration(decoration);
 
         // Prompt for bluetooth if needed
         if(checkPermissions()) {
@@ -64,6 +72,7 @@ public class HomeActivity extends AppCompatActivity {
             }
         } else {
             Log.i(TAG, "Waiting on permissions.");
+            Snackbar.make(mRootView, "Waiting on permissions.", Snackbar.LENGTH_LONG);
         }
     }
 

@@ -6,4 +6,6 @@
   - BLE Debugging
   - BLE Status Indicator
 - App
-  - Build a BLE App
+  - Badge configuration
+  - Show a "no badges in range" error
+  - Special icon for bonded
