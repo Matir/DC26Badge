@@ -1,17 +1,32 @@
 package com.attackercommunity.acdcbadge;
 
+import android.Manifest;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothManager;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import java.util.ArrayList;
+
 public class HomeActivity extends AppCompatActivity {
+    public static final String TAG = "HomeActivity";
+    private static final int REQUEST_ENABLE_BT = 1;
+    private static final int REQUEST_PERMISSIONS = 2;
+
     private BadgeListAdapter mBadgeListAdapter;
 
     @Override
@@ -26,8 +41,7 @@ public class HomeActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                mBadgeListAdapter.refreshView(view.getContext());
             }
         });
 
@@ -37,6 +51,20 @@ public class HomeActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         mBadgeListAdapter = new BadgeListAdapter();
         recyclerView.setAdapter(mBadgeListAdapter);
+
+        // Prompt for bluetooth if needed
+        if(checkPermissions()) {
+            final BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+            BluetoothAdapter adapter = bluetoothManager.getAdapter();
+            if (adapter == null || !adapter.isEnabled()) {
+                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+            } else {
+                mBadgeListAdapter.refreshView(this);
+            }
+        } else {
+            Log.i(TAG, "Waiting on permissions.");
+        }
     }
 
     @Override
@@ -59,5 +87,49 @@ public class HomeActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_ENABLE_BT && resultCode == RESULT_OK) {
+            mBadgeListAdapter.refreshView(this);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] perms, int[] results) {
+        boolean gotAll = results.length > 0;
+        for (int res : results) {
+            gotAll = gotAll && (res == PackageManager.PERMISSION_GRANTED);
+        }
+        if (!gotAll) {
+            // Toast complaining about permissions
+            Snackbar.make(findViewById(R.id.badge_recycler),
+                    "Don't have the necessary permissions.",
+                    Snackbar.LENGTH_INDEFINITE);
+        } else {
+            // Restart activity with new permissions
+            recreate();
+        }
+    }
+
+    private boolean checkPermissions() {
+        String[] needed = {
+                Manifest.permission.BLUETOOTH,
+                Manifest.permission.BLUETOOTH_ADMIN,
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+        };
+        ArrayList<String> requested = new ArrayList<>();
+        for (String perm : needed) {
+            if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
+                requested.add(perm);
+            }
+        }
+        if (requested.size() == 0) {
+            return true;
+        }
+        String[] toRequest = requested.toArray(new String[requested.size()]);
+        ActivityCompat.requestPermissions(this, toRequest, REQUEST_PERMISSIONS);
+        return false;
     }
 }

@@ -1,6 +1,7 @@
 package com.attackercommunity.acdcbadge;
 
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
@@ -35,7 +36,7 @@ public class BadgeScanner implements IBadgeScanner {
         }
         BluetoothManager manager = (BluetoothManager) ctx.getSystemService(Context.BLUETOOTH_SERVICE);
         BluetoothAdapter adapter = manager.getAdapter();
-        BluetoothLeScanner scanner = adapter.getBluetoothLeScanner();
+        final BluetoothLeScanner scanner = adapter.getBluetoothLeScanner();
         ScanSettings.Builder ssBuilder = new ScanSettings.Builder();
         ssBuilder.setReportDelay(Constants.ScanDelayMillis);
         ssBuilder.setScanMode(ScanSettings.SCAN_MODE_BALANCED);
@@ -51,12 +52,13 @@ public class BadgeScanner implements IBadgeScanner {
             public void run() {
                 Log.i(TAG, "Stopping BLE Scan");
                 scanner.stopScan(mCallback);
+                mCallback.onScanStopped();
                 mCallback = null;
             }
         }, Constants.ScanTimeMillis);
     }
 
-    class BadgeScannerScanCallback extends ScanCallback {
+    private class BadgeScannerScanCallback extends ScanCallback {
         private IBadgeScannerCallback mCallback;
 
         BadgeScannerScanCallback(IBadgeScannerCallback resultCallback) {
@@ -74,18 +76,24 @@ public class BadgeScanner implements IBadgeScanner {
         public void onBatchScanResults(List<ScanResult> results) {
             Log.d(TAG, "Received batch scan results.");
             for (ScanResult result: results) {
-                this.handleScanResult(result);
+                handleScanResult(result);
             }
         }
 
         @Override
         public void onScanResult(int unused_callbackType, ScanResult result) {
-            Log.d(TAG, "Recevied scan result.");
-            this.handleScanResult(result);
+            Log.d(TAG, "Received scan result.");
+            handleScanResult(result);
         }
 
-        void handleScanResult(ScanResult result) {
+        private void onScanStopped() {
+            mCallback.onScanStopped();
+        }
 
+        private void handleScanResult(ScanResult result) {
+            BluetoothDevice dev = result.getDevice();
+            Log.d(TAG, "Scan saw device with name " + dev.getName() + " " + dev.getAddress());
+            mCallback.onBLEDevice(dev);
         }
     }
 }
