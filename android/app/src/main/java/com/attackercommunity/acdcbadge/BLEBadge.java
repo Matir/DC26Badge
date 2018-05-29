@@ -20,7 +20,9 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.UUID;
 
 // Abstracts a single badge and handles BLE interfacing.
@@ -34,6 +36,7 @@ public final class BLEBadge {
     private BluetoothGattService mBadgeService = null;
     private BLEBadgeUpdateNotifier mNotifier = null;
     private int mPendingCharacteristics = 0;
+    private GattQueue mQueue = null;
 
     // Data from the badge itself
     private boolean mDisplayEnabled = false;
@@ -68,11 +71,13 @@ public final class BLEBadge {
         mDisplayEnabled = value;
         BluetoothGattCharacteristic dispChar = mBadgeService.getCharacteristic(
                 Constants.DisplayOnOffUUID);
+        if (dispChar == null) {
+            Log.e(TAG, "No characteristic found in setBrightness.");
+            return;
+        }
         int byVal = value ? 1 : 0;
         dispChar.setValue(byVal, BluetoothGattCharacteristic.FORMAT_UINT8, 0);
-        mBluetoothGatt.beginReliableWrite();
-        mBluetoothGatt.writeCharacteristic(dispChar);
-        mBluetoothGatt.executeReliableWrite();
+        mQueue.add(new GattQueueOperation(GattOperation.WRITE, dispChar));
     }
 
     // Get the brightness
@@ -86,10 +91,12 @@ public final class BLEBadge {
             throw new BLEBadgeException("Brightness exceeds maximum value.");
         BluetoothGattCharacteristic bright = mBadgeService.getCharacteristic(
                 Constants.DisplayBrightnessUUID);
+        if (bright == null) {
+            Log.e(TAG, "No characteristic found in setBrightness.");
+            return;
+        }
         bright.setValue(newVal, BluetoothGattCharacteristic.FORMAT_UINT8, 0);
-        mBluetoothGatt.beginReliableWrite();
-        mBluetoothGatt.writeCharacteristic(bright);
-        mBluetoothGatt.executeReliableWrite();
+        mQueue.add(new GattQueueOperation(GattOperation.WRITE, bright));
     }
 
     // Get the messages
@@ -109,6 +116,7 @@ public final class BLEBadge {
             return true;
         if (ensureBonded()) {
             mBluetoothGatt = mDevice.connectGatt(mContext, true, mGattCallback);
+            mQueue = new GattQueue(mBluetoothGatt);
             return true;
         }
         return false;
@@ -191,8 +199,7 @@ public final class BLEBadge {
         }
         for(BluetoothGattCharacteristic item : chars) {
             Log.d(TAG, "Updating " + item.getUuid());
-            if (!mBluetoothGatt.readCharacteristic(item))
-                Log.e(TAG, "Error requesting characteristic!");
+            mQueue.add(new GattQueueOperation(GattOperation.READ, item));
         }
     }
 
@@ -201,13 +208,21 @@ public final class BLEBadge {
         // Update display state
         BluetoothGattCharacteristic onOff = mBadgeService.getCharacteristic(
                 Constants.DisplayOnOffUUID);
-        Integer intVal = onOff.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0);
-        mDisplayEnabled = (intVal == 1);
+        if (onOff != null) {
+            Integer intVal = onOff.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0);
+            mDisplayEnabled = (intVal == 1);
+        } else {
+            Log.w(TAG, "Could not find ON/OFF Characteristic in updateState.");
+        }
         // Update display brightness
         BluetoothGattCharacteristic brightness = mBadgeService.getCharacteristic(
                 Constants.DisplayBrightnessUUID);
-        intVal = brightness.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0);
-        mBrightness = intVal.byteValue();
+        if (brightness != null) {
+            Integer intVal = brightness.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8, 0);
+            mBrightness = intVal.byteValue();
+        } else {
+            Log.w(TAG, "Could not find brightness characteristic in updateState.");
+        }
         // Update messages
         UUID msgUUID = Constants.MessageUUID;
         List<BLEBadgeMessage> messages = new ArrayList<>();
@@ -405,11 +420,14 @@ public final class BLEBadge {
             }
             if (allUpdated)
                 updateState();
+            mQueue.executeNext();
         }
 
         @Override
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             super.onCharacteristicWrite(gatt, characteristic, status);
+            Log.i(TAG, "Characteristic write completed with status " + status);
+            mQueue.executeNext();
         }
 
         @Override
@@ -419,8 +437,70 @@ public final class BLEBadge {
             if (status != BluetoothGatt.GATT_SUCCESS) {
                 notifyError("Failed to write changes to device.");
             }
+            mQueue.executeNext();
         }
     };
+
+    private enum GattOperation {
+        READ, WRITE
+    }
+
+    private static final class GattQueueOperation {
+        private final GattOperation op;
+        private final BluetoothGattCharacteristic target;
+
+        public GattQueueOperation(GattOperation op, BluetoothGattCharacteristic target) {
+            this.op = op;
+            this.target = target;
+        }
+    }
+
+    private static final class GattQueue {
+        private final Queue<GattQueueOperation> queue = new LinkedList<>();
+        private final BluetoothGatt mGatt;
+        private boolean pending = false; // Is an operation currently pending?
+
+        public GattQueue(BluetoothGatt gatt){
+            mGatt = gatt;
+        }
+
+        public void add(GattQueueOperation op) {
+            synchronized (this) {
+                if (!pending) {
+                    pending = true;
+                    executeOp(op);
+                    return;
+                }
+                queue.add(op);
+            }
+        }
+
+        public Boolean executeNext() {
+            GattQueueOperation op;
+            synchronized (this) {
+                op = queue.poll();
+                if (op == null) {
+                    pending = false;
+                    return null;
+                }
+                pending = true;
+            }
+            return executeOp(op);
+        }
+
+        private boolean executeOp(GattQueueOperation op) {
+            if (op.op == GattOperation.READ) {
+                return mGatt.readCharacteristic(op.target);
+            } else if (op.op == GattOperation.WRITE) {
+                mGatt.beginReliableWrite();
+                boolean rv = mGatt.writeCharacteristic(op.target);
+                mGatt.executeReliableWrite();
+                return rv;
+            }
+            Log.e(TAG, "Unknown operation!");
+            return false;
+        }
+    }
 
     // Just for making things pretty
     @NonNull private static String bluetoothGattStateString(int state) {
