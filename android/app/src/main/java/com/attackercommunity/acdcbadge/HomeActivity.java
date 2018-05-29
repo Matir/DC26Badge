@@ -55,7 +55,7 @@ public class HomeActivity extends AppCompatActivity {
         RecyclerView recyclerView = (RecyclerView) findViewById(R.id.badge_recycler);
         recyclerView.setHasFixedSize(true);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        mBadgeListAdapter = new BadgeListAdapter(mRootView);
+        mBadgeListAdapter = new BadgeListAdapter(mRootView, this);
         recyclerView.setAdapter(mBadgeListAdapter);
         DividerItemDecoration decoration = new DividerItemDecoration(this, recyclerView.getLayoutDirection());
         recyclerView.addItemDecoration(decoration);

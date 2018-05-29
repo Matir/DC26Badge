@@ -1,7 +1,9 @@
 package com.attackercommunity.acdcbadge;
 
+import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Typeface;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
@@ -28,13 +30,14 @@ public class BadgeListAdapter extends RecyclerView.Adapter<BadgeListAdapter.View
     private static final String TAG = "BadgeListAdapter";
     private ArrayList<BluetoothDevice> mDevices;
     private Set<String> mDeviceIds;
+    private Activity mContainingActivity = null;
     private View mContainingView = null;
     private boolean mIsScanning = false;
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         public final DeviceDisplayLayout mDisplay;
         public BluetoothDevice mDevice;
-        public ViewHolder(DeviceDisplayLayout display) {
+        public ViewHolder(DeviceDisplayLayout display, final Activity activity) {
             super(display);
             mDisplay = display;
             display.setOnClickListener(new View.OnClickListener() {
@@ -42,6 +45,9 @@ public class BadgeListAdapter extends RecyclerView.Adapter<BadgeListAdapter.View
                 public void onClick(View v) {
                     // handle click event
                     Log.i(TAG, "Clicked for device " + mDevice.getAddress());
+                    Intent intent = new Intent(v.getContext(), BadgeSetupActivity.class);
+                    intent.putExtra(Constants.BLEDevMessage, mDevice);
+                    activity.startActivity(intent);
                 }
             });
         }
@@ -54,9 +60,10 @@ public class BadgeListAdapter extends RecyclerView.Adapter<BadgeListAdapter.View
         mDeviceIds = new HashSet<>();
     }
 
-    public BadgeListAdapter(View view) {
+    public BadgeListAdapter(View view, Activity activity) {
         this();
         mContainingView = view;
+        mContainingActivity = activity;
         Log.i(TAG, "mContainingView is " + mContainingView.toString());
     }
 
@@ -66,11 +73,12 @@ public class BadgeListAdapter extends RecyclerView.Adapter<BadgeListAdapter.View
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
         DeviceDisplayLayout layout = (DeviceDisplayLayout)inflater.inflate(R.layout.badge_device, parent, false);
         layout.setupView();
-        return new ViewHolder(layout);
+        return new ViewHolder(layout, mContainingActivity);
     }
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
+        //TODO: remove debugging 2x size
         position /= 2;
         BluetoothDevice dev;
         synchronized (this) {

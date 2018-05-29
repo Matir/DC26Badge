@@ -22,7 +22,7 @@ public class BadgeScanner implements IBadgeScanner {
 
     // Build a scan filter for our service
     private List<ScanFilter> buildScanFilters() {
-        ParcelUuid puuid = ParcelUuid.fromString(Constants.BadgeServiceUUID);
+        ParcelUuid puuid = new ParcelUuid(Constants.BadgeServiceUUID);
         ScanFilter serviceUUIDFilter = (new ScanFilter.Builder()).setServiceUuid(puuid).build();
         ArrayList<ScanFilter> rv = new ArrayList<>();
         rv.add(serviceUUIDFilter);
