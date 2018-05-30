@@ -44,9 +44,11 @@ static void ble_setup_badge_service(led_display *disp);
 static void ble_error_handler(uint32_t nrf_error);
 static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context);
 static uint32_t ble_badge_add_onoff_characteristic();
+static uint32_t ble_badge_add_brightness_characteristic();
 static uint32_t ble_badge_add_message_characteristics();
 static uint32_t ble_badge_add_message_characteristic(led_message *msg, uint16_t idx);
 static void ble_badge_handle_onoff_write(uint8_t val);
+static void ble_badge_handle_brightness_write(uint8_t val);
 static void conn_params_init();
 static void gap_params_init();
 static void advertising_init();
@@ -117,6 +119,7 @@ static void ble_setup_badge_service(led_display *disp) {
 
   // Add the characteristics
   APP_ERROR_CHECK(ble_badge_add_onoff_characteristic());
+  APP_ERROR_CHECK(ble_badge_add_brightness_characteristic());
   APP_ERROR_CHECK(ble_badge_add_message_characteristics());
 
   // Register event handler
@@ -133,7 +136,11 @@ static void gap_params_init() {
   ble_gap_conn_params_t gap_conn_params;
   ble_gap_conn_sec_mode_t sec_mode;
 
+#if BLE_SECURITY
+  BLE_GAP_CONN_SEC_MODE_SET_LESC_ENC_WITH_MITM(&sec_mode);
+#else
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&sec_mode);  /* TODO: add security */
+#endif
 
   APP_ERROR_CHECK(sd_ble_gap_device_name_set(
         &sec_mode,
@@ -243,9 +250,13 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
       break;
     case BLE_GATTS_EVT_WRITE:
       EVT_DEBUG("GATTS Write event");
-      if (p_ble_evt->evt.gatts_evt.params.write.handle ==
-          ble_badge_svc.onoff_handles.value_handle) {
+      uint16_t handle = p_ble_evt->evt.gatts_evt.params.write.handle;
+      if (handle == ble_badge_svc.onoff_handles.value_handle) {
         ble_badge_handle_onoff_write(
+            p_ble_evt->evt.gatts_evt.params.write.data[0]);
+        break;
+      } else if (handle == ble_badge_svc.brightness_handles.value_handle) {
+        ble_badge_handle_brightness_write(
             p_ble_evt->evt.gatts_evt.params.write.data[0]);
         break;
       }
@@ -383,6 +394,52 @@ static uint32_t ble_badge_add_onoff_characteristic() {
       &char_md,
       &attr_value,
       &ble_badge_svc.onoff_handles);
+}
+
+static void ble_badge_handle_brightness_write(uint8_t val) {
+  display_mode(ble_badge_svc.display, val & 1, 0);
+}
+
+static uint32_t ble_badge_add_brightness_characteristic() {
+  ble_gatts_char_md_t char_md = {0};
+  ble_gatts_attr_md_t attr_md = {0};
+  ble_gatts_attr_t    attr_value = {0};
+  ble_uuid_t          ble_uuid;
+  static char char_desc[] = "Brightness";
+
+  char_md.char_props.read = 1;
+  char_md.char_props.write = 1;
+  char_md.char_props.write_wo_resp = 1;
+  char_md.p_char_user_desc = (uint8_t *)char_desc;
+  char_md.char_user_desc_size = strlen(char_desc);
+  char_md.char_user_desc_max_size = char_md.char_user_desc_size;
+
+#if BLE_SECURITY
+  BLE_GAP_CONN_SEC_MODE_SET_LESC_ENC_WITH_MITM(&attr_md.read_perm);
+  BLE_GAP_CONN_SEC_MODE_SET_LESC_ENC_WITH_MITM(&attr_md.write_perm);
+#else
+  BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);  /*TODO: add security */
+  BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.write_perm); /*TODO: add security */
+#endif
+  attr_md.vloc = BLE_GATTS_VLOC_STACK;
+  attr_md.rd_auth = 0;
+  attr_md.wr_auth = 0;
+  attr_md.vlen = 0;
+
+  attr_value.p_uuid = &ble_uuid;
+  attr_value.p_attr_md = &attr_md;
+  attr_value.init_len = sizeof(uint8_t);
+  attr_value.init_offs = 0;
+  attr_value.max_len = sizeof(uint8_t);
+  attr_value.p_value = &ble_badge_svc.display->brightness;
+
+  ble_uuid.type = ble_badge_svc.uuid_type;
+  ble_uuid.uuid = BADGE_BRIGHTNESS_UUID;
+  return sd_ble_gatts_characteristic_add(
+      ble_badge_svc.service_handle,
+      &char_md,
+      &attr_value,
+      &ble_badge_svc.brightness_handles);
 }
 
 static uint32_t ble_badge_add_message_characteristics() {

@@ -48,6 +48,7 @@ void init_led_display(led_display *disp, nrfx_twim_t *twi_instance,
   disp->twi_instance = twi_instance;
   disp->cur_message = &message_set[0];
   disp->msg_pos = 0;
+  disp->brightness = 0;
   uint8_t enable = CMD_OSCILLATOR | 1;
   display_i2c_send(disp, &enable, 1);
 
@@ -167,6 +168,7 @@ ret_code_t display_text(led_display *disp, uint8_t *text) {
  * Set brightness
  */
 ret_code_t display_set_brightness(led_display *disp, uint8_t level) {
+  disp->brightness = level;
   level = CMD_DIMMING | (level & 0xF);
   return display_i2c_send(disp, &level, 1);
 }

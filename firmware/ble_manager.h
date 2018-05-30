@@ -51,6 +51,7 @@
                                   0x00, 0x00, 0x00, 0x00}
 #define BADGE_SERVICE_UUID      0x4141
 #define BADGE_ONOFF_UUID        0x4242
+#define BADGE_BRIGHTNESS_UUID   0x4444
 #define BADGE_MSG_UUID          0x4545
 
 #define APP_ADV_FAST_INTERVAL   0x0028
@@ -66,6 +67,7 @@ typedef void (*ble_message_write_handler_t) (uint16_t, ble_badge_service_t *, ui
 typedef struct _ble_badge_service_s {
   uint16_t                    service_handle;
   ble_gatts_char_handles_t    onoff_handles;
+  ble_gatts_char_handles_t    brightness_handles;
   ble_gatts_char_handles_t    message_handles[NUM_MESSAGES];
   uint8_t                     uuid_type;
   ble_message_write_handler_t message_write_handler;

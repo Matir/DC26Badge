@@ -41,6 +41,8 @@ typedef struct _led_display {
   uint8_t addr;
   // Is display on
   uint8_t on;
+  // Brightness
+  uint8_t brightness;
   // Message position
   uint16_t msg_pos;
   // Currently displayed message
