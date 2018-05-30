@@ -17,6 +17,7 @@
 #include "led_display.h"
 #include "ble_manager.h"
 #include "buttons.h"
+#include "storage.h"
 
 #ifndef NRFX_TWIM0_ENABLED
 # error TWIM0 is not enabled.
@@ -28,8 +29,16 @@
 
 //TODO: move to board config
 
-#define PIN_SCL 26
-#define PIN_SDA 27
+#if defined(BOARD_BADGE)
+# define PIN_SCL 26
+# define PIN_SDA 27
+#elif defined(BOARD_PROTOTYPE)
+# define PIN_SCL 26
+# define PIN_SDA 27
+#else
+# define PIN_SCL 26
+# define PIN_SDA 27
+#endif
 
 led_display display = {0};
 
@@ -82,6 +91,7 @@ int main(void) {
   power_management_init();
   twi_init(&twi_master);
   gpio_init();
+  storage_init();
 
   NRF_LOG_INFO("Setting up display.");
 

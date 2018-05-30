@@ -5267,7 +5267,7 @@
 
 
 #ifndef CRC16_ENABLED
-#define CRC16_ENABLED 0
+#define CRC16_ENABLED 1
 #endif
 
 // <q> CRC32_ENABLED  - crc32 - CRC32 calculation routines
@@ -5344,7 +5344,7 @@
 // <i> Increase this value if you frequently get synchronous FDS_ERR_NO_SPACE_IN_QUEUES errors.
 
 #ifndef FDS_OP_QUEUE_SIZE
-#define FDS_OP_QUEUE_SIZE 4
+#define FDS_OP_QUEUE_SIZE 8
 #endif
 
 // </h>
@@ -5360,7 +5360,7 @@
 // <i> Additionally, they will not be garbage collected until they are deleted.
 //==========================================================
 #ifndef FDS_CRC_CHECK_ON_READ
-#define FDS_CRC_CHECK_ON_READ 0
+#define FDS_CRC_CHECK_ON_READ 1
 #endif
 // <o> FDS_CRC_CHECK_ON_WRITE  - Perform a CRC check on newly written records.
 
