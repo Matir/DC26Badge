@@ -4,10 +4,10 @@
 
 #include "app_scheduler.h"
 #include "nrf_log.h"
+#include "ble_gap.h"
 
 #include "led_display.h"
-
-#include "ble_gap.h"
+#include "storage.h"
 
 #define CMD_WRITE_RAM 0x00
 #define CMD_DIMMING 0xe0
@@ -264,4 +264,36 @@ void display_dec_brightness(led_display *disp) {
   if (disp->brightness == 0)
     return;
   display_set_brightness(disp, disp->brightness - 1);
+}
+
+
+/**
+ * Load from storage
+ */
+ret_code_t display_load_storage() {
+  for (uint16_t i=0; i<NUM_MESSAGES; i++) {
+    int len = sizeof(led_message);
+    ret_code_t rv = get_message(&message_set[i], &len, i);
+    if (rv == NRF_SUCCESS)
+      continue;
+    // it's fine if they're not found
+    if (rv == FDS_ERR_NOT_FOUND)
+      return NRF_SUCCESS;
+    return rv;
+  }
+  return NRF_SUCCESS;
+}
+
+/**
+ * Save to storage
+ */
+ret_code_t display_save_storage() {
+  for (uint16_t i=0; i<NUM_MESSAGES; i++) {
+    int len = sizeof(led_message);
+    ret_code_t rv = save_message(&message_set[i], len, i);
+    if(rv == NRF_SUCCESS)
+      continue;
+    return rv;
+  }
+  return NRF_SUCCESS;
 }

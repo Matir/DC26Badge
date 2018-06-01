@@ -70,5 +70,7 @@ void display_next_message(led_display *disp);
 void display_prev_message(led_display *disp);
 void display_inc_brightness(led_display *disp);
 void display_dec_brightness(led_display *disp);
+ret_code_t display_load_storage();
+ret_code_t display_save_storage();
 
 #endif /* _LED_DISPLAY_H_ */

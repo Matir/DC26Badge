@@ -96,6 +96,7 @@ int main(void) {
   NRF_LOG_INFO("Setting up display.");
 
   init_led_display(&display, &twi_master, 0x70);
+  display_load_storage();
   display_on(&display);
   display_set_brightness(&display, 8);
   display_set_message(&display, NULL);

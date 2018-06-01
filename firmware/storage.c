@@ -8,6 +8,7 @@
 static void storage_evt_handler(const fds_evt_t * const p_evt);
 static ret_code_t storage_get(void *dest, int *len, const uint16_t file, const uint16_t record);
 static ret_code_t storage_save(void *src, const int len, const uint16_t file, const uint16_t record_key);
+static ret_code_t maybe_gc(bool force);
 
 static volatile int storage_init_done = 0;
 
@@ -23,6 +24,17 @@ static void storage_evt_handler(const fds_evt_t * const p_fds_evt) {
   switch (p_fds_evt->id) {
     case FDS_EVT_INIT:
       storage_init_done = 1;
+      break;
+    case FDS_EVT_WRITE:
+    case FDS_EVT_UPDATE:
+      if (p_fds_evt->result != FDS_SUCCESS) {
+        NRF_LOG_ERROR("Write/updated failed!");
+      }
+      if (p_fds_evt->result == FDS_ERR_NO_SPACE_IN_FLASH) {
+        fds_gc();
+      } else {
+        maybe_gc(false);
+      }
       break;
     default:
       // Not doing anything here.
@@ -107,6 +119,23 @@ static ret_code_t storage_save(void *src, const int len, const uint16_t file, co
   }
 
   fds_record_desc_t record_desc;
+  fds_find_token_t token;
+  if (fds_record_find(file, record_key, &record_desc, &token) == FDS_ERR_NOT_FOUND) {
+    return fds_record_write(&record_desc, &record);
+  } else {
+    return fds_record_update(&record_desc, &record);
+  }
+}
 
-  return fds_record_write(&record_desc, &record);
+static ret_code_t maybe_gc(bool force) {
+  fds_stat_t stats;
+  ret_code_t rv = fds_stat(&stats);
+  if (rv != FDS_SUCCESS)
+    return rv;
+  bool must_gc = force || stats.corruption;
+  must_gc = must_gc || (stats.dirty_records > 10);
+  if (must_gc) {
+    return fds_gc();
+  }
+  return FDS_SUCCESS;
 }
