@@ -4,6 +4,7 @@
 #include "ble_manager.h"
 #include "led_display.h"
 #include "buttons.h"
+#include "storage.h"
 
 #include "nordic_common.h"
 #include "nrf.h"
@@ -259,6 +260,15 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
         ble_badge_handle_brightness_write(
             p_ble_evt->evt.gatts_evt.params.write.data[0]);
         break;
+      } else {
+        ble_gatts_char_handles_t *msg_handles = ble_badge_svc.message_handles;
+        for (int i=0; i<NUM_MESSAGES; i++) {
+          if (handle == msg_handles[i].value_handle) {
+            // Save on update
+            save_message(&message_set[i], sizeof(led_message), i);
+            break;
+          }
+        }
       }
       break;
     case BLE_GATTS_EVT_TIMEOUT:
