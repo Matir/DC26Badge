@@ -30,9 +30,9 @@
 //TODO: move to board config
 
 #if defined(BOARD_BADGE)
-# define PIN_SCL 26
-# define PIN_SDA 27
-#elif defined(BOARD_PROTOTYPE)
+# define PIN_SCL 13
+# define PIN_SDA 18
+#elif defined(BOARD_PROTO)
 # define PIN_SCL 26
 # define PIN_SDA 27
 #else
