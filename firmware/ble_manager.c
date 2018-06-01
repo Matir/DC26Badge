@@ -63,6 +63,7 @@ static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;
 static uint16_t m_pending_conn_handle = BLE_CONN_HANDLE_INVALID;
 static ble_uuid_t m_adv_uuids[1] = {0};
 
+static char device_name[32] = DEVICE_NAME;
 static ble_badge_service_t ble_badge_svc = {0};
 
 void ble_stack_init(led_display *disp) {
@@ -71,6 +72,10 @@ void ble_stack_init(led_display *disp) {
   APP_ERROR_CHECK(nrf_sdh_ble_default_cfg_set(APP_BLE_CONN_CFG_TAG, &ram_start));
   APP_ERROR_CHECK(nrf_sdh_ble_enable(&ram_start));
   NRF_LOG_INFO("SDH started, setting BLE params.");
+
+  int device_name_len = sizeof(device_name);
+  get_device_name(device_name, &device_name_len);
+  device_name[sizeof(device_name)-1] = '\0';
 
   gap_params_init();
   conn_params_init();
@@ -145,8 +150,8 @@ static void gap_params_init() {
 
   APP_ERROR_CHECK(sd_ble_gap_device_name_set(
         &sec_mode,
-        (const uint8_t *)DEVICE_NAME,
-        strlen(DEVICE_NAME)));
+        (uint8_t *)device_name,
+        strlen(device_name)));
 
   gap_conn_params.min_conn_interval = MIN_CONN_INTERVAL;
   gap_conn_params.max_conn_interval = MAX_CONN_INTERVAL;
@@ -260,6 +265,19 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
         ble_badge_handle_brightness_write(
             p_ble_evt->evt.gatts_evt.params.write.data[0]);
         break;
+      } else if (p_ble_evt->evt.gatts_evt.params.write.uuid.type
+            == BLE_UUID_TYPE_BLE &&
+          p_ble_evt->evt.gatts_evt.params.write.uuid.uuid
+            == BLE_UUID_GAP_CHARACTERISTIC_DEVICE_NAME) {
+        // Update to device name
+        uint16_t device_name_len = sizeof(device_name)-1;
+        if (sd_ble_gap_device_name_get((uint8_t *)device_name, &device_name_len)
+            == NRF_SUCCESS) {
+          device_name[device_name_len] = '\0';
+          save_device_name(device_name, device_name_len+1);
+          // TODO: might need to fix this
+          advertising_init();
+        }
       } else {
         ble_gatts_char_handles_t *msg_handles = ble_badge_svc.message_handles;
         for (int i=0; i<NUM_MESSAGES; i++) {
