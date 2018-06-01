@@ -218,3 +218,50 @@ void display_show_pairing_code(led_display *disp, char *pairing_code) {
 }
 STATIC_ASSERT(MSG_MAX_LEN > BLE_GAP_PASSKEY_LEN,
     "MSG_MAX_LEN smaller than BLE_GAP_PASSKEY_LEN");
+
+
+/**
+ * Next message
+ */
+void display_next_message(led_display *disp) {
+  for(int i=0; i<NUM_MESSAGES; i++) {
+    if (disp->cur_message == &message_set[i]) {
+      if (++i == NUM_MESSAGES) i = 0;
+      display_set_message(disp, &message_set[i]);
+      return;
+    }
+  }
+}
+
+/**
+ * Previous message
+ */
+void display_prev_message(led_display *disp) {
+  for(int i=0; i<NUM_MESSAGES; i++) {
+    if (disp->cur_message == &message_set[i]) {
+      if (i-- == 0) {
+        i = NUM_MESSAGES-1;
+      }
+      display_set_message(disp, &message_set[i]);
+      return;
+    }
+  }
+}
+
+/**
+ * Increase brightness
+ */
+void display_inc_brightness(led_display *disp) {
+  if (disp->brightness == MAX_BRIGHTNESS)
+    return;
+  display_set_brightness(disp, disp->brightness + 1);
+}
+
+/**
+ * Decrease brightness
+ */
+void display_dec_brightness(led_display *disp) {
+  if (disp->brightness == 0)
+    return;
+  display_set_brightness(disp, disp->brightness - 1);
+}

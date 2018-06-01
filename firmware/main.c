@@ -101,7 +101,7 @@ int main(void) {
   display_set_message(&display, NULL);
 
   NRF_LOG_INFO("Setting up buttons.");
-  buttons_init(NULL);
+  buttons_init(&display);
 
   NRF_LOG_INFO("Setting up BLE.");
   ble_stack_init(&display);
