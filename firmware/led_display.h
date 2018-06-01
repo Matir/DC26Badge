@@ -21,6 +21,7 @@ typedef enum {
   MSG_STATIC,
   MSG_SCROLL,
   MSG_REPLACE,
+  MSG_WARGAMES,
 } __attribute__ ((packed)) message_update_t;
 
 typedef struct _led_message {
