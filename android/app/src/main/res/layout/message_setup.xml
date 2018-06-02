@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/message_setup_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <RadioButton
+        android:id="@+id/message_select_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintBottom_toBottomOf="@+id/textStyle"
+        app:layout_constraintTop_toTopOf="@+id/message_text"
+        tools:layout_editor_absoluteX="16dp" />
+
+    <EditText
+        android:id="@+id/message_text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:ems="10"
+        android:inputType="text"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/message_select_btn"
+        tools:layout_editor_absoluteY="16dp" />
+
+    <Spinner
+        android:id="@+id/speed_spinner"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="@+id/textSpeed"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/textSpeed"
+        app:layout_constraintTop_toTopOf="@+id/textSpeed" />
+
+    <TextView
+        android:id="@+id/textSpeed"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="16dp"
+        android:text="Speed"
+        android:textAppearance="@android:style/TextAppearance.Material.Widget"
+        app:layout_constraintBottom_toBottomOf="@+id/style_spinner"
+        app:layout_constraintEnd_toStartOf="@+id/speed_spinner"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/style_spinner"
+        app:layout_constraintTop_toTopOf="@+id/style_spinner" />
+
+    <Spinner
+        android:id="@+id/style_spinner"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="@+id/textStyle"
+        app:layout_constraintEnd_toStartOf="@+id/textSpeed"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/textStyle"
+        app:layout_constraintTop_toTopOf="@+id/textStyle" />
+
+    <TextView
+        android:id="@+id/textStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="16dp"
+        android:text="Style"
+        android:textAppearance="@android:style/TextAppearance.Material.Widget"
+        app:layout_constraintEnd_toStartOf="@+id/style_spinner"
+        app:layout_constraintStart_toEndOf="@+id/message_select_btn"
+        app:layout_constraintTop_toBottomOf="@+id/message_text" />
+</android.support.constraint.ConstraintLayout>
