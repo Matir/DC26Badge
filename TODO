@@ -1,0 +1,17 @@
+- Board
+  - Get production board
+- Firmware
+  - Finish joystick implementation
+  - Store messages in flash
+  - Store name in flash
+  - Change name over BLE
+  - Change current message over BLE
+  - Change brightness over BLE
+  - BLE Debugging
+  - BLE Status Indicator
+- App
+  - Badge configuration
+  - Show a "no badges in range" error
+  - Special icon for bonded
+  - Thin line between devices
+  - Icon for App (Globe + Smiley?)
