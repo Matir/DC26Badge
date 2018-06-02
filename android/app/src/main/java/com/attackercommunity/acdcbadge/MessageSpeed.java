@@ -14,6 +14,9 @@ public enum MessageSpeed {
     MSG_SPEED_FAST (8, "Fast"),
     MSG_SPEED_FASTEST (4, "Fastest");
 
+    // Size of underlying representation in bytes
+    public static final short SIZE = 2;
+
     private short speed;
     private String speedName;
 
@@ -24,6 +27,10 @@ public enum MessageSpeed {
 
     public String toString() {
         return this.speedName;
+    }
+
+    public short encode() {
+        return speed;
     }
 
     public static MessageSpeed fromSpeed(short val) {

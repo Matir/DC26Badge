@@ -14,11 +14,11 @@ import android.content.IntentFilter;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -42,6 +42,7 @@ public final class BLEBadge {
     private boolean mDisplayEnabled = false;
     private byte mBrightness = 0;
     private final List<BLEBadgeMessage> mMessages = new ArrayList<>();
+    private final List<BluetoothGattCharacteristic> mMessageChars = new ArrayList<>();
 
     public BLEBadge(@NonNull Context ctx, @NonNull BluetoothDevice device) {
         mContext = ctx;
@@ -106,6 +107,20 @@ public final class BLEBadge {
             ArrayList<BLEBadgeMessage> newList = new ArrayList<>(mMessages.size());
             newList.addAll(mMessages);
             return Collections.unmodifiableList(newList);
+        }
+    }
+
+    // Save messages that have been changed
+    public void saveMessages() {
+        synchronized (mMessages) {
+            for(int i=0; i<mMessages.size(); i++) {
+                BLEBadgeMessage msg = mMessages.get(i);
+                if (!msg.hasChanges())
+                    continue;
+                BluetoothGattCharacteristic ch = mMessageChars.get(i);
+                msg.updateCharacteristic(ch);
+                mQueue.add(GattQueueOperation.Write(ch));
+            }
         }
     }
 
@@ -242,12 +257,14 @@ public final class BLEBadge {
         // Update messages
         UUID msgUUID = Constants.MessageUUID;
         List<BLEBadgeMessage> messages = new ArrayList<>();
+        List<BluetoothGattCharacteristic> characteristics = new ArrayList<>();
         for (BluetoothGattCharacteristic item : mBadgeService.getCharacteristics()) {
             if (!item.getUuid().equals(msgUUID))
                 continue;
             try {
                 BLEBadgeMessage newMessage = BLEBadgeMessage.fromCharacteristic(item);
                 messages.add(newMessage);
+                characteristics.add(item);
             } catch(BLEBadgeException ex) {
                 Log.e(TAG, "Unable to parse BLE Badge Message", ex);
             }
@@ -255,6 +272,8 @@ public final class BLEBadge {
         synchronized (this.mMessages) {
             mMessages.clear();
             mMessages.addAll(messages);
+            mMessageChars.clear();
+            mMessageChars.addAll(characteristics);
         }
         // Finally notify that state has changed
         notifyChanged();
@@ -307,6 +326,10 @@ public final class BLEBadge {
             return new BLEBadgeMessage(mode, rate, text);
         }
 
+        public void updateCharacteristic(BluetoothGattCharacteristic characteristic) {
+            characteristic.setValue(toBytes());
+        }
+
         public String getText() {
             return mText;
         }
@@ -347,6 +370,24 @@ public final class BLEBadge {
 
         public boolean hasChanges() {
             return changed;
+        }
+
+        private byte[] toBytes() {
+            final byte[] messageBytes;
+            try {
+                messageBytes = mText.getBytes("US-ASCII");
+            } catch(UnsupportedEncodingException ex) {
+                Log.e(TAG, "Unsupported encoding in toBytes!", ex);
+                return null;
+            }
+            int length = MessageMode.SIZE + MessageSpeed.SIZE + messageBytes.length;
+            byte[] rawBuffer = new byte[length];
+            ByteBuffer buffer = ByteBuffer.wrap(rawBuffer);
+            buffer.order(ByteOrder.LITTLE_ENDIAN);
+            buffer.put(mMode.encode());
+            buffer.putShort(mRate.encode());
+            buffer.put(messageBytes);
+            return buffer.array();
         }
     }
 
@@ -420,9 +461,14 @@ public final class BLEBadge {
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             super.onCharacteristicWrite(gatt, characteristic, status);
             Log.i(TAG, "Characteristic write completed with status " + status);
-            //mQueue.executeNext();
-            // TODO: wtf?
+            // TODO: wtf?  This should not need reliable, as I never start reliable...
             mBluetoothGatt.executeReliableWrite();
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                int idx = mMessageChars.indexOf(characteristic);
+                if (idx > -1) {
+                    mMessages.get(idx).changed = false;
+                }
+            }
         }
 
         @Override

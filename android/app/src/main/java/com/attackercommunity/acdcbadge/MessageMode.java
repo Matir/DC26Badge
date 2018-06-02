@@ -14,14 +14,21 @@ public enum MessageMode {
     private final byte modeId;
     private final String modeName;
 
+    // Size of underlying representation in bytes
+    public static final short SIZE = 1;
+
     MessageMode(int val, String modeName) {
-        modeId = (byte)val;
+        this.modeId = (byte)val;
         this.modeName = modeName;
     }
 
     @Override
     public String toString() {
         return modeName;
+    }
+
+    public byte encode() {
+        return modeId;
     }
 
     public static MessageMode fromByte(byte val) {

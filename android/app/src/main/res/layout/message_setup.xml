@@ -23,7 +23,9 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:ems="10"
+        android:fontFamily="monospace"
         android:inputType="text"
+        android:text="HACK THE PLANET"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/message_select_btn"
         tools:layout_editor_absoluteY="16dp" />

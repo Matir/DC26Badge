@@ -203,7 +203,7 @@ public class BadgeSetupActivity extends AppCompatActivity {
     private View.OnClickListener mSaveListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            // TODO: implement this!
+            mBadge.saveMessages();
             Log.i(TAG, "Save clicked.");
         }
     };
