@@ -77,7 +77,7 @@ public final class BLEBadge {
         }
         int byVal = value ? 1 : 0;
         dispChar.setValue(byVal, BluetoothGattCharacteristic.FORMAT_UINT8, 0);
-        mQueue.add(new GattQueueOperation(GattOperation.WRITE, dispChar));
+        mQueue.add(GattQueueOperation.Write(dispChar));
     }
 
     // Get the brightness
@@ -96,7 +96,7 @@ public final class BLEBadge {
             return;
         }
         bright.setValue(newVal, BluetoothGattCharacteristic.FORMAT_UINT8, 0);
-        mQueue.add(new GattQueueOperation(GattOperation.WRITE, bright));
+        mQueue.add(GattQueueOperation.Write(bright));
     }
 
     // Get the messages
@@ -112,10 +112,18 @@ public final class BLEBadge {
     // Connect to remote
     // Returns true if connected or connecting, false if not yet bonded
     public boolean connect() {
-        if (connected())
+        Log.i(TAG, "Attempting to connect to remote badge.");
+        if (connected()) {
+            if (mBluetoothGatt == null) {
+                mBluetoothGatt = mDevice.connectGatt(mContext, false, mGattCallback);
+                mQueue = new GattQueue(mBluetoothGatt);
+                mBluetoothGatt.discoverServices();
+            }
             return true;
+        }
         if (ensureBonded()) {
-            mBluetoothGatt = mDevice.connectGatt(mContext, true, mGattCallback);
+            Log.i(TAG, "Establishing GATT Connection.");
+            mBluetoothGatt = mDevice.connectGatt(mContext, false, mGattCallback);
             mQueue = new GattQueue(mBluetoothGatt);
             return true;
         }
@@ -132,14 +140,18 @@ public final class BLEBadge {
 
     // Close connection
     public void close() {
-        if (mBluetoothGatt == null)
-            return;
-        mBluetoothGatt.close();
-        mBluetoothGatt = null;
-        mBadgeService = null;
+        if (mBluetoothGatt != null) {
+            mBluetoothGatt.close();
+            mBluetoothGatt = null;
+            mBadgeService = null;
+        }
 
         Log.d(TAG, "Unregistering intent receiver.");
-        mContext.unregisterReceiver(mBroadcastReceiver);
+        try {
+            mContext.unregisterReceiver(mBroadcastReceiver);
+        } catch (java.lang.IllegalArgumentException ex) {
+            // Just don't care, honestly.
+        }
     }
 
     public void setUpdateNotifier(BLEBadgeUpdateNotifier notifier) {
@@ -151,7 +163,6 @@ public final class BLEBadge {
         abstract void onChanged(BLEBadge badge);
         abstract void onError(BLEBadge badge, String error);
     }
-
 
     // Notify of changes
     private void notifyChanged() {
@@ -177,9 +188,11 @@ public final class BLEBadge {
 
     // Check if we are bonded, and if not, start bonding
     private boolean ensureBonded() {
+        Log.i(TAG, "Ensuring we are bonded now.");
         if (mDevice.getBondState() == BluetoothDevice.BOND_BONDED) {
             return true;
         }
+        Log.i(TAG, "Not bonded, requesting a bonding.");
         boolean rv = mDevice.createBond();
         if (!rv) {
             Log.e(TAG, "Error requesting to create bond!");
@@ -189,6 +202,7 @@ public final class BLEBadge {
 
     // Updates all the characteristics
     private void updateCharacteristics() {
+        Log.i(TAG, "Updating all characteristics.");
         if (!connected()) {
             Log.e(TAG, "Cannot update characteristics when not connected.");
             return;
@@ -199,12 +213,14 @@ public final class BLEBadge {
         }
         for(BluetoothGattCharacteristic item : chars) {
             Log.d(TAG, "Updating " + item.getUuid());
-            mQueue.add(new GattQueueOperation(GattOperation.READ, item));
+            mQueue.add(GattQueueOperation.Read(item));
         }
     }
 
     // Update the internal badge state
     private void updateState() {
+        if (mBadgeService == null)
+            return;
         // Update display state
         BluetoothGattCharacteristic onOff = mBadgeService.getCharacteristic(
                 Constants.DisplayOnOffUUID);
@@ -427,7 +443,9 @@ public final class BLEBadge {
         public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
             super.onCharacteristicWrite(gatt, characteristic, status);
             Log.i(TAG, "Characteristic write completed with status " + status);
-            mQueue.executeNext();
+            //mQueue.executeNext();
+            // TODO: wtf?
+            mBluetoothGatt.executeReliableWrite();
         }
 
         @Override
@@ -435,6 +453,7 @@ public final class BLEBadge {
             super.onReliableWriteCompleted(gatt, status);
             Log.i(TAG, "Reliable write completed with status " + status);
             if (status != BluetoothGatt.GATT_SUCCESS) {
+                Log.e(TAG, "Failed to write changes to device.");
                 notifyError("Failed to write changes to device.");
             }
             mQueue.executeNext();
@@ -442,7 +461,7 @@ public final class BLEBadge {
     };
 
     private enum GattOperation {
-        READ, WRITE
+        READ, WRITE, RELIABLE_WRITE
     }
 
     private static final class GattQueueOperation {
@@ -452,6 +471,14 @@ public final class BLEBadge {
         public GattQueueOperation(GattOperation op, BluetoothGattCharacteristic target) {
             this.op = op;
             this.target = target;
+        }
+
+        public static GattQueueOperation Write(BluetoothGattCharacteristic target) {
+            return new GattQueueOperation(GattOperation.WRITE, target);
+        }
+
+        public static GattQueueOperation Read(BluetoothGattCharacteristic target) {
+            return new GattQueueOperation(GattOperation.READ, target);
         }
     }
 
@@ -489,12 +516,45 @@ public final class BLEBadge {
         }
 
         private boolean executeOp(GattQueueOperation op) {
+            boolean rv;
             if (op.op == GattOperation.READ) {
-                return mGatt.readCharacteristic(op.target);
+                Log.d(TAG, "Executing read.");
+                rv = mGatt.readCharacteristic(op.target);
+                if (!rv) {
+                    Log.e(TAG, "Unable to read characteristic");
+                }
+                return rv;
             } else if (op.op == GattOperation.WRITE) {
-                mGatt.beginReliableWrite();
-                boolean rv = mGatt.writeCharacteristic(op.target);
-                mGatt.executeReliableWrite();
+                Log.d(TAG, "Executing write.");
+                int writeType = op.target.getWriteType();
+                String writeTypeString = "Unknown";
+                if (writeType == BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT) {
+                    writeTypeString = "DEFAULT";
+                } else if (writeType == BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE) {
+                    writeTypeString = "No Response";
+                } else if (writeType == BluetoothGattCharacteristic.WRITE_TYPE_SIGNED) {
+                    writeTypeString = "Signed";
+                }
+                Log.d(TAG, "Write type: " + writeTypeString);
+                op.target.setWriteType(BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT);
+                rv = mGatt.writeCharacteristic(op.target);
+                if (!rv) {
+                    Log.e(TAG, "Unable to write Characteristic.");
+                }
+                return rv;
+            } else if (op.op == GattOperation.RELIABLE_WRITE) {
+                Log.d(TAG, "Executing reliable write.");
+                if (!mGatt.beginReliableWrite()) {
+                    Log.e(TAG, "Unable to begin reliable write.");
+                }
+                rv = mGatt.writeCharacteristic(op.target);
+                if (!rv) {
+                    Log.e(TAG, "Unable to write Characteristic.");
+                }
+                // Probably need to make this a separate operation
+                if (!mGatt.executeReliableWrite()) {
+                    Log.e(TAG, "Unable to execute reliable write.");
+                }
                 return rv;
             }
             Log.e(TAG, "Unknown operation!");

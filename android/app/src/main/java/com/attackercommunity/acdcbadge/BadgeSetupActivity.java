@@ -55,6 +55,7 @@ public class BadgeSetupActivity extends AppCompatActivity {
         mBadgeDisplaySwitch.setOnCheckedChangeListener(mDisplayChangeListener);
         mCancelButton.setOnClickListener(mCancelListener);
         mSaveButton.setOnClickListener(mSaveListener);
+        mBadgeBrightnessBar.setOnSeekBarChangeListener(mBrightnessListener);
     }
 
     private void findViews() {
@@ -79,28 +80,36 @@ public class BadgeSetupActivity extends AppCompatActivity {
         mBadge.close();
     }
 
+    private void displayErrorSnackbar(String message) {
+        CoordinatorLayout coordinatorLayout = findViewById(R.id.home_coordinator);
+        Snackbar.make(coordinatorLayout, message, Snackbar.LENGTH_LONG);
+    }
+
     private BLEBadge.BLEBadgeUpdateNotifier mUpdateNotifier = new BLEBadge.BLEBadgeUpdateNotifier() {
         @Override
-        void onChanged(BLEBadge badge) {
+        void onChanged(final BLEBadge badge) {
             // Update view
             Log.i(TAG, "Notified of BLE Badge Change.");
+            BadgeSetupActivity.this.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    // Basic information
+                    mBadgeNameView.setText(mDevice.getName());
+                    mBadgeDisplaySwitch.setChecked(badge.getDisplayEnabled());
+                    mBadgeBrightnessBar.setProgress(badge.getBrightness());
 
-            // Basic information
-            mBadgeNameView.setText(mDevice.getName());
-            mBadgeDisplaySwitch.setChecked(badge.getDisplayEnabled());
-            mBadgeBrightnessBar.setProgress(badge.getBrightness());
+                    // Set the messages.
+                    // TODO
 
-            // Set the messages.
-            // TODO
-
-            // Hide the spinner
-            mLoadingSpinner.setVisibility(View.GONE);
+                    // Hide the spinner
+                    mLoadingSpinner.setVisibility(View.GONE);
+                }
+            });
         }
 
         @Override
         void onError(BLEBadge badge, String error) {
-            CoordinatorLayout coordinatorLayout = findViewById(R.id.home_coordinator);
-            Snackbar.make(coordinatorLayout, error, Snackbar.LENGTH_LONG);
+            displayErrorSnackbar(error);
         }
     };
 
@@ -108,6 +117,29 @@ public class BadgeSetupActivity extends AppCompatActivity {
         @Override
         public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
             mBadge.setDisplayEnabled(isChecked);
+        }
+    };
+
+    private SeekBar.OnSeekBarChangeListener mBrightnessListener = new SeekBar.OnSeekBarChangeListener() {
+        @Override
+        public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+            if (!fromUser)
+                return;
+            try {
+                mBadge.setBrightness((byte) progress);
+            } catch (BLEBadge.BLEBadgeException ex) {
+                displayErrorSnackbar(ex.toString());
+            }
+        }
+
+        @Override
+        public void onStartTrackingTouch(SeekBar seekBar) {
+
+        }
+
+        @Override
+        public void onStopTrackingTouch(SeekBar seekBar) {
+
         }
     };
 
