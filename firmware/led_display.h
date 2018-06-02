@@ -13,6 +13,8 @@
 # error I2C_BUF_LEN Shorter than required minimum!
 #endif
 
+#define MAX_BRIGHTNESS 15
+
 #define MSG_MAX_LEN 35  // One extra byte is reserved for null
 
 #define NUM_MESSAGES 4
@@ -21,6 +23,7 @@ typedef enum {
   MSG_STATIC,
   MSG_SCROLL,
   MSG_REPLACE,
+  MSG_WARGAMES,
 } __attribute__ ((packed)) message_update_t;
 
 typedef struct _led_message {
@@ -41,6 +44,8 @@ typedef struct _led_display {
   uint8_t addr;
   // Is display on
   uint8_t on;
+  // Brightness
+  uint8_t brightness;
   // Message position
   uint16_t msg_pos;
   // Currently displayed message
@@ -61,5 +66,11 @@ ret_code_t display_mode(led_display *disp, uint8_t on, uint8_t blink);
 #define display_off(disp) display_mode((disp), 0, 0)
 void display_set_message(led_display *disp, led_message *msg);
 void display_show_pairing_code(led_display *disp, char *pairing_code);
+void display_next_message(led_display *disp);
+void display_prev_message(led_display *disp);
+void display_inc_brightness(led_display *disp);
+void display_dec_brightness(led_display *disp);
+ret_code_t display_load_storage();
+ret_code_t display_save_storage();
 
 #endif /* _LED_DISPLAY_H_ */
