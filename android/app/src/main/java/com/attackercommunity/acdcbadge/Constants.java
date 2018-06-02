@@ -13,4 +13,5 @@ public final class Constants {
     public static final String BLEDevMessage = "com.attackercommunity.acdcbadge.BLE_DEVICE";
     public static final int MessageMaxLength = 35; // Must be kept in sync with firmware!
     public static final int MaxBrightness = 16;  // Maximum screen brightness
+    public static final boolean PermitUnknownRates = true; // Permit unknown rates coming from firmware
 }

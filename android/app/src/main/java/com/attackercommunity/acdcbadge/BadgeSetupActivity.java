@@ -32,7 +32,7 @@ public class BadgeSetupActivity extends AppCompatActivity {
     private Button mSaveButton = null;
     private Button mCancelButton = null;
     private RecyclerView mMessageView = null;
-    private RecyclerView.Adapter mMessageAdapter = null;
+    private MessageListAdapter mMessageAdapter = null;
 
     private boolean mInRefresh = false;
 
@@ -122,7 +122,7 @@ public class BadgeSetupActivity extends AppCompatActivity {
                         mBadgeBrightnessBar.setProgress(badge.getBrightness());
 
                         // Set the messages.
-                        // TODO
+                        mMessageAdapter.setMessages(badge.getMessages());
 
                         // Hide the spinner
                         mLoadingSpinner.setVisibility(View.GONE);
@@ -203,6 +203,7 @@ public class BadgeSetupActivity extends AppCompatActivity {
     private View.OnClickListener mSaveListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
+            // TODO: implement this!
             Log.i(TAG, "Save clicked.");
         }
     };

@@ -260,52 +260,15 @@ public final class BLEBadge {
         notifyChanged();
     }
 
-    // The different badge modes
-    public enum MessageMode {
-        MSG_STATIC (0),
-        MSG_SCROLL (1),
-        MSG_REPLACE (2),
-        MSG_WARGAMES (3);
-
-        private final byte modeId;
-        private static final String[] modeNames = new String[]{
-                "Static", "Scroll", "Replace", "Wargames"};
-
-        MessageMode(int val) {
-            modeId = (byte)val;
-        }
-
-        @Override
-        public String toString() {
-            try {
-                return modeNames[modeId];
-            } catch (ArrayIndexOutOfBoundsException ex) {
-                return "UNKNOWN";
-            }
-        }
-
-        public static MessageMode fromByte(byte val) {
-            for (MessageMode m: MessageMode.values()) {
-                if (m.modeId == val)
-                    return m;
-            }
-            return null;
-        }
-
-        public static List<String> getNames() {
-            return Collections.unmodifiableList(Arrays.asList(modeNames));
-        }
-    }
-
     // Represents a single badge message
     public static final class BLEBadgeMessage {
 
         private MessageMode mMode;
-        private short mRate;
+        private MessageSpeed mRate;
         private String mText;
         private boolean changed = false;
 
-        private BLEBadgeMessage(MessageMode mode, short rate, String text) {
+        private BLEBadgeMessage(MessageMode mode, MessageSpeed rate, String text) {
             mMode = mode;
             mRate = rate;
             mText = text;
@@ -323,7 +286,15 @@ public final class BLEBadge {
             if (mode == null) {
                 throw new BLEBadgeException("Unknown message mode!");
             }
-            short rate = readBuffer.getShort();
+            short rawRate = readBuffer.getShort();
+            MessageSpeed rate = MessageSpeed.fromSpeed(rawRate);
+            if (rate == null) {
+                if (Constants.PermitUnknownRates) {
+                    rate = MessageSpeed.fromNearest(rawRate);
+                } else {
+                    throw new BLEBadgeException("Unknown message rate!");
+                }
+            }
             int offset = readBuffer.position();
             int length = value.length - offset;
             for(int i = offset; i < value.length; i ++) {
@@ -346,15 +317,19 @@ public final class BLEBadge {
                 throw new BLEBadgeException(
                         "Message is limited to " + Constants.MessageMaxLength + " characters.");
             }
+            if (text.equals(mText))
+                return;
             mText = text;
             changed = true;
         }
 
-        public short getRate() {
+        public MessageSpeed getSpeed() {
             return mRate;
         }
 
-        public void setRate(short rate) {
+        public void setSpeed(MessageSpeed rate) {
+            if (mRate == rate)
+                return;
             mRate = rate;
             changed = true;
         }
@@ -364,6 +339,8 @@ public final class BLEBadge {
         }
 
         public void setMode(MessageMode mode) {
+            if (mMode == mode)
+                return;
             mMode = mode;
             changed = true;
         }
