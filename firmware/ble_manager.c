@@ -257,6 +257,7 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
     case BLE_GATTS_EVT_WRITE:
       EVT_DEBUG("GATTS Write event");
       uint16_t handle = p_ble_evt->evt.gatts_evt.params.write.handle;
+      EVT_DEBUG("Handle: %d", handle);
       if (handle == ble_badge_svc.onoff_handles.value_handle) {
         ble_badge_handle_onoff_write(
             p_ble_evt->evt.gatts_evt.params.write.data[0]);
@@ -345,6 +346,9 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
       display_show_pairing_code(ble_badge_svc.display, NULL);
       joystick_set_enable(1);
       break;
+    case BLE_GAP_EVT_SEC_INFO_REQUEST:
+      EVT_DEBUG("SEC_INFO_REQUEST");
+      break;
     case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
       EVT_DEBUG("SEC_PARAMS_REQUEST");
       break;
@@ -391,7 +395,7 @@ static uint32_t ble_badge_add_onoff_characteristic() {
 
   char_md.char_props.read = 1;
   char_md.char_props.write = 1;
-  char_md.char_props.write_wo_resp = 1;
+  char_md.char_props.write_wo_resp = 0;
   char_md.p_char_user_desc = (uint8_t *)char_desc;
   char_md.char_user_desc_size = strlen(char_desc);
   char_md.char_user_desc_max_size = char_md.char_user_desc_size;
@@ -403,7 +407,7 @@ static uint32_t ble_badge_add_onoff_characteristic() {
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);  /*TODO: add security */
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.write_perm); /*TODO: add security */
 #endif
-  attr_md.vloc = BLE_GATTS_VLOC_STACK;
+  attr_md.vloc = BLE_GATTS_VLOC_USER;
   attr_md.rd_auth = 0;
   attr_md.wr_auth = 0;
   attr_md.vlen = 0;
@@ -425,7 +429,7 @@ static uint32_t ble_badge_add_onoff_characteristic() {
 }
 
 static void ble_badge_handle_brightness_write(uint8_t val) {
-  display_mode(ble_badge_svc.display, val & 1, 0);
+  display_set_brightness(ble_badge_svc.display, val);
 }
 
 static uint32_t ble_badge_add_brightness_characteristic() {
@@ -437,7 +441,7 @@ static uint32_t ble_badge_add_brightness_characteristic() {
 
   char_md.char_props.read = 1;
   char_md.char_props.write = 1;
-  char_md.char_props.write_wo_resp = 1;
+  char_md.char_props.write_wo_resp = 0;
   char_md.p_char_user_desc = (uint8_t *)char_desc;
   char_md.char_user_desc_size = strlen(char_desc);
   char_md.char_user_desc_max_size = char_md.char_user_desc_size;
@@ -449,7 +453,7 @@ static uint32_t ble_badge_add_brightness_characteristic() {
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);  /*TODO: add security */
   BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.write_perm); /*TODO: add security */
 #endif
-  attr_md.vloc = BLE_GATTS_VLOC_STACK;
+  attr_md.vloc = BLE_GATTS_VLOC_USER;
   attr_md.rd_auth = 0;
   attr_md.wr_auth = 0;
   attr_md.vlen = 0;
@@ -488,7 +492,7 @@ static uint32_t ble_badge_add_message_characteristic(led_message *msg, uint16_t 
 
   char_md.char_props.read = 1;
   char_md.char_props.write = 1;
-  char_md.char_props.write_wo_resp = 1;
+  char_md.char_props.write_wo_resp = 0;
   char_md.p_char_user_desc = (uint8_t *)char_desc;
   char_md.char_user_desc_size = strlen(char_desc);
   char_md.char_user_desc_max_size = char_md.char_user_desc_size;
@@ -543,11 +547,13 @@ static void pm_evt_handler(pm_evt_t const *p_evt) {
           p_evt->conn_handle, p_evt->params.conn_sec_failed.error);
       m_pending_conn_handle = BLE_CONN_HANDLE_INVALID;
       display_show_pairing_code(ble_badge_svc.display, NULL);
+      // Reset the bond
+      pm_peer_delete(p_evt->peer_id);
       break;
     case PM_EVT_CONN_SEC_CONFIG_REQ:
-      // Already bonded, why did we get this?
+      EVT_DEBUG("PM_EVT_CONN_SEC_CONFIG_REQ");
       {
-        pm_conn_sec_config_t conn_sec_config = {.allow_repairing = false};
+        pm_conn_sec_config_t conn_sec_config = {.allow_repairing = true};
         pm_conn_sec_config_reply(p_evt->conn_handle, &conn_sec_config);
       }
       break;
@@ -567,7 +573,35 @@ static void pm_evt_handler(pm_evt_t const *p_evt) {
     case PM_EVT_ERROR_UNEXPECTED:
       APP_ERROR_CHECK(p_evt->params.error_unexpected.error);
       break;
-    default:
+    case PM_EVT_CONN_SEC_PARAMS_REQ:
+      EVT_DEBUG("PM_EVT_CONN_SEC_PARAMS_REQ unhandled.");
+      break;
+    case PM_EVT_PEER_DATA_UPDATE_SUCCEEDED:
+      EVT_DEBUG("Unhandled PM_EVT_PEER_DATA_UPDATE_SUCCEEDED");
+      break;
+    case PM_EVT_PEER_DELETE_SUCCEEDED:
+      EVT_DEBUG("Unhandled PM_EVT_PEER_DELETE_SUCCEEDED");
+      break;
+    case PM_EVT_PEERS_DELETE_SUCCEEDED:
+      EVT_DEBUG("Unhandled PM_EVT_PEERS_DELETE_SUCCEEDED");
+      break;
+    case PM_EVT_LOCAL_DB_CACHE_APPLIED:
+      EVT_DEBUG("Unhandled PM_EVT_LOCAL_DB_CACHE_APPLIED");
+      break;
+    case PM_EVT_LOCAL_DB_CACHE_APPLY_FAILED:
+      EVT_DEBUG("Unhandled PM_EVT_LOCAL_DB_CACHE_APPLY_FAILED");
+      break;
+    case PM_EVT_SERVICE_CHANGED_IND_SENT:
+      EVT_DEBUG("Unhandled PM_EVT_SERVICE_CHANGED_IND_SENT");
+      break;
+    case PM_EVT_SERVICE_CHANGED_IND_CONFIRMED:
+      EVT_DEBUG("Unhandled PM_EVT_SERVICE_CHANGED_IND_CONFIRMED");
+      break;
+    case PM_EVT_SLAVE_SECURITY_REQ:
+      EVT_DEBUG("Unhandled PM_EVT_SLAVE_SECURITY_REQ");
+      break;
+    case PM_EVT_FLASH_GARBAGE_COLLECTED:
+      EVT_DEBUG("Unhandled PM_EVT_FLASH_GARBAGE_COLLECTED");
       break;
   }
 }
