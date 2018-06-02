@@ -1,12 +1,7 @@
 - Board
-  - Get production board
+  - Assembly
 - Firmware
-  - Finish joystick implementation
-  - Store messages in flash
-  - Store name in flash
-  - Change name over BLE
   - Change current message over BLE
-  - Change brightness over BLE
   - BLE Debugging
   - BLE Status Indicator
 - App
@@ -15,3 +10,4 @@
   - Special icon for bonded
   - Thin line between devices
   - Icon for App (Globe + Smiley?)
+  - Rate limit slider
