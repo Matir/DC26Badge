@@ -1,4 +1,5 @@
 #include "buttons.h"
+#include "led_display.h"
 #include "ble_manager.h"
 #include "nrf_log.h"
 #include "app_timer.h"
@@ -12,11 +13,11 @@ static void handle_joystick_button(uint8_t pin_no, uint8_t button_action);
 static void handle_ble_button(uint8_t pin_no, uint8_t button_action);
 
 static bool joystick_enabled = 0;
-static joystick_actions_t *joystick_actions = NULL;
 static ble_callback_t *ble_accept_cb = NULL;
+static led_display *display = NULL;
 
-void buttons_init(joystick_actions_t *actions) {
-  joystick_actions = actions;
+void buttons_init(led_display *disp) {
+  display = disp;
   const static app_button_cfg_t buttons[] = {
     DEF_BUTTON(JOYSTICK_UP, handle_joystick_button),
     DEF_BUTTON(JOYSTICK_CENTER, handle_joystick_button),
@@ -50,12 +51,16 @@ static void handle_joystick_button(uint8_t pin_no, uint8_t button_action) {
       (uint32_t)pin_no);
   switch (pin_no) {
     case JOYSTICK_UP:
+      display_prev_message(display);
       break;
     case JOYSTICK_DOWN:
+      display_next_message(display);
       break;
     case JOYSTICK_LEFT:
+      display_dec_brightness(display);
       break;
     case JOYSTICK_RIGHT:
+      display_inc_brightness(display);
       break;
     case JOYSTICK_CENTER:
       RETURN_IF(button_action == APP_BUTTON_PUSH);

@@ -4,10 +4,10 @@
 
 #include "app_scheduler.h"
 #include "nrf_log.h"
+#include "ble_gap.h"
 
 #include "led_display.h"
-
-#include "ble_gap.h"
+#include "storage.h"
 
 #define CMD_WRITE_RAM 0x00
 #define CMD_DIMMING 0xe0
@@ -48,6 +48,7 @@ void init_led_display(led_display *disp, nrfx_twim_t *twi_instance,
   disp->twi_instance = twi_instance;
   disp->cur_message = &message_set[0];
   disp->msg_pos = 0;
+  disp->brightness = 0;
   uint8_t enable = CMD_OSCILLATOR | 1;
   display_i2c_send(disp, &enable, 1);
 
@@ -167,6 +168,7 @@ ret_code_t display_text(led_display *disp, uint8_t *text) {
  * Set brightness
  */
 ret_code_t display_set_brightness(led_display *disp, uint8_t level) {
+  disp->brightness = level;
   level = CMD_DIMMING | (level & 0xF);
   return display_i2c_send(disp, &level, 1);
 }
@@ -216,3 +218,82 @@ void display_show_pairing_code(led_display *disp, char *pairing_code) {
 }
 STATIC_ASSERT(MSG_MAX_LEN > BLE_GAP_PASSKEY_LEN,
     "MSG_MAX_LEN smaller than BLE_GAP_PASSKEY_LEN");
+
+
+/**
+ * Next message
+ */
+void display_next_message(led_display *disp) {
+  for(int i=0; i<NUM_MESSAGES; i++) {
+    if (disp->cur_message == &message_set[i]) {
+      if (++i == NUM_MESSAGES) i = 0;
+      display_set_message(disp, &message_set[i]);
+      return;
+    }
+  }
+}
+
+/**
+ * Previous message
+ */
+void display_prev_message(led_display *disp) {
+  for(int i=0; i<NUM_MESSAGES; i++) {
+    if (disp->cur_message == &message_set[i]) {
+      if (i-- == 0) {
+        i = NUM_MESSAGES-1;
+      }
+      display_set_message(disp, &message_set[i]);
+      return;
+    }
+  }
+}
+
+/**
+ * Increase brightness
+ */
+void display_inc_brightness(led_display *disp) {
+  if (disp->brightness == MAX_BRIGHTNESS)
+    return;
+  display_set_brightness(disp, disp->brightness + 1);
+}
+
+/**
+ * Decrease brightness
+ */
+void display_dec_brightness(led_display *disp) {
+  if (disp->brightness == 0)
+    return;
+  display_set_brightness(disp, disp->brightness - 1);
+}
+
+
+/**
+ * Load from storage
+ */
+ret_code_t display_load_storage() {
+  for (uint16_t i=0; i<NUM_MESSAGES; i++) {
+    int len = sizeof(led_message);
+    ret_code_t rv = get_message(&message_set[i], &len, i);
+    if (rv == NRF_SUCCESS)
+      continue;
+    // it's fine if they're not found
+    if (rv == FDS_ERR_NOT_FOUND)
+      return NRF_SUCCESS;
+    return rv;
+  }
+  return NRF_SUCCESS;
+}
+
+/**
+ * Save to storage
+ */
+ret_code_t display_save_storage() {
+  for (uint16_t i=0; i<NUM_MESSAGES; i++) {
+    int len = sizeof(led_message);
+    ret_code_t rv = save_message(&message_set[i], len, i);
+    if(rv == NRF_SUCCESS)
+      continue;
+    return rv;
+  }
+  return NRF_SUCCESS;
+}

@@ -38,6 +38,7 @@ SRC_FILES += \
   $(SDK_ROOT)/components/libraries/atomic_flags/nrf_atflags.c \
   $(SDK_ROOT)/components/libraries/balloc/nrf_balloc.c \
   $(SDK_ROOT)/components/libraries/button/app_button.c \
+  $(SDK_ROOT)/components/libraries/crc16/crc16.c \
   $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_ecc.c \
   $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_ecdh.c \
   $(SDK_ROOT)/components/libraries/crypto/nrf_crypto_rng.c \
@@ -95,6 +96,7 @@ SRC_FILES += \
   $(PROJ_DIR)/ble_manager.c \
   $(PROJ_DIR)/ble_evt.c \
   $(PROJ_DIR)/buttons.c \
+  $(PROJ_DIR)/storage.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \
