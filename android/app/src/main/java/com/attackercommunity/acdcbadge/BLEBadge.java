@@ -177,17 +177,17 @@ public final class BLEBadge {
 
     // Close connection
     public void close() {
-        if (mBluetoothGatt != null) {
-            mBluetoothGatt.close();
-            mBluetoothGatt = null;
-            mBadgeService = null;
-        }
-
         Log.d(TAG, "Unregistering intent receiver.");
         try {
             mContext.unregisterReceiver(mBroadcastReceiver);
         } catch (java.lang.IllegalArgumentException ex) {
             // Just don't care, honestly.
+        }
+
+        if (mBluetoothGatt != null) {
+            mBluetoothGatt.close();
+            mBluetoothGatt = null;
+            mBadgeService = null;
         }
     }
 
@@ -428,13 +428,14 @@ public final class BLEBadge {
                 Log.e(TAG, "Unsupported encoding in toBytes!", ex);
                 return null;
             }
-            int length = MessageMode.SIZE + MessageSpeed.SIZE + messageBytes.length;
+            int length = MessageMode.SIZE + MessageSpeed.SIZE + messageBytes.length + 1;
             byte[] rawBuffer = new byte[length];
             ByteBuffer buffer = ByteBuffer.wrap(rawBuffer);
             buffer.order(ByteOrder.LITTLE_ENDIAN);
             buffer.put(mMode.encode());
             buffer.putShort(mRate.encode());
             buffer.put(messageBytes);
+            buffer.put((byte)0); // ensure null termination on the firmware side
             return buffer.array();
         }
     }
@@ -466,6 +467,9 @@ public final class BLEBadge {
                 if (!gatt.discoverServices()) {
                     Log.e(TAG, "Error requesting service discovery.");
                 }
+            } else if (newState == BluetoothGatt.STATE_DISCONNECTED) {
+                // Attempt to reconnect
+                gatt.connect();
             }
         }
 
