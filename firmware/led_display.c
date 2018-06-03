@@ -16,6 +16,11 @@
 #define CMD_DISPLAY 0x80
 
 #define DISP_UPDATE_FREQUENCY_MS 50
+#define WARGAMES_MATCH_BITS 5
+#define WARGAMES_MATCH_MASK ((1 << WARGAMES_MATCH_BITS) - 1)
+#define WARGAMES_MATCH(x) (((x) & WARGAMES_MATCH_MASK) == WARGAMES_MATCH_MASK)
+
+#define RANDOM_BUF_SZ 256
 
 static inline ret_code_t display_i2c_send(
     led_display *disp, const uint8_t const *data, uint8_t len);
@@ -25,6 +30,8 @@ static void display_update(led_display *disp);
 static void refresh_crcs();
 static uint16_t crc_message(unsigned int i);
 static bool message_crc_dirty(unsigned int i);
+static uint8_t getrandom();
+static void cook_random();
 
 /**
  * Storage for available messages.
@@ -42,10 +49,14 @@ led_message message_set[NUM_MESSAGES] = {
   }
 };
 
-/**
- * Check for dirty messages.
- */
+// Check for dirty messages.
 static uint16_t message_crcs[NUM_MESSAGES];
+// Random data when needed
+static uint8_t random_data[RANDOM_BUF_SZ];
+static uint8_t random_pos = 0;
+// Wargames options
+const static uint8_t char_options[] =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
 /**
  * Initialize the display struct.
@@ -117,25 +128,61 @@ static void display_update(led_display *disp) {
     return;
 
   led_message *msg = disp->cur_message;
-  char *buf[LED_DISPLAY_WIDTH];  // Current characters
+  char buf[LED_DISPLAY_WIDTH] = {0};  // Current characters
+  int len, chunks, pos;
+  char *start;
 
   switch (msg->update) {
     case MSG_STATIC:
       display_text(disp, (uint8_t *)msg->message);
       break;
+
     case MSG_SCROLL:
-      memset(buf, 0, LED_DISPLAY_WIDTH);
-      int len = strlen(msg->message);
+      len = strlen(msg->message);
       // len+1 allows screen to go blank in between iterations
-      int pos = (disp->msg_pos / msg->speed) % (len+1);
-      char *start = &(msg->message[pos]);
-      int left = len - pos;
-      if (left > LED_DISPLAY_WIDTH)
-        left = LED_DISPLAY_WIDTH;
-      if (left)
-        memcpy(buf, start, left);
+      pos = (disp->msg_pos / msg->speed) % (len+1);
+      start = &(msg->message[pos]);
+      strncpy(buf, start, LED_DISPLAY_WIDTH);
       display_text(disp, (uint8_t *)buf);
       break;
+
+    case MSG_REPLACE:
+      chunks = strlen(msg->message) / LED_DISPLAY_WIDTH;
+      pos = (disp->msg_pos / msg->speed) % (chunks+1);
+      if (pos < chunks) {
+        start = &(msg->message[pos*LED_DISPLAY_WIDTH]);
+        strncpy(buf, start, LED_DISPLAY_WIDTH);
+      }
+      display_text(disp, (uint8_t *)buf);
+      break;
+
+    case MSG_WARGAMES:
+      if (disp->anim_data.wargames_map == 0xFF) {
+        // We have a lock!
+        pos = disp->msg_pos / (msg->speed * 4);
+        if (pos & 1) {
+          display_text(disp, (uint8_t *)msg->message);
+        } else {
+          display_text(disp, (uint8_t *)buf);
+        }
+      } else {
+        uint8_t rand = getrandom();
+        if (WARGAMES_MATCH(rand)) {
+          rand = getrandom();
+          disp->anim_data.wargames_map |= (1 << rand & 0x7);
+        }
+        for(int i=0; i<LED_DISPLAY_WIDTH; i++) {
+          if (disp->anim_data.wargames_map & (1 << i)) {
+            buf[i] = msg->message[i];
+          } else {
+            rand = getrandom();
+            buf[i] = char_options[rand % sizeof(char_options)];
+          }
+        }
+        display_text(disp, (uint8_t *)buf);
+      }
+      break;
+
     default:
       NRF_LOG_ERROR("Unknown msg update type.");
       return;
@@ -203,6 +250,7 @@ void display_set_message(led_display *disp, led_message *msg) {
   }
   disp->cur_message = msg;
   disp->msg_pos = 0;
+  memset((void *)&disp->anim_data.wargames_map, 0, sizeof(disp->anim_data));
   display_update(disp);
 }
 
@@ -339,4 +387,27 @@ static uint16_t crc_message(unsigned int i) {
  */
 static bool message_crc_dirty(unsigned int i) {
   return message_crcs[i] != crc_message(i);
+}
+
+/**
+ * Get random byte
+ */
+static uint8_t getrandom() {
+  uint8_t rv = random_data[random_pos];
+  random_pos++;
+  random_pos %= RANDOM_BUF_SZ;
+  if (!random_pos)
+    cook_random();
+  return rv;
+}
+
+/**
+ * Update rng
+ */
+static void cook_random() {
+  static uint8_t sauce = 0x55;
+  sauce ^= random_data[sauce % RANDOM_BUF_SZ];
+  for (int i=0; i<RANDOM_BUF_SZ; i++)
+    random_data[i] ^= sauce;
+  sauce = (sauce << 1) | (sauce >> 7);
 }

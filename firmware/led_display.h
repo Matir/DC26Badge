@@ -46,12 +46,16 @@ typedef struct _led_display {
   uint8_t on;
   // Brightness
   uint8_t brightness;
+  // Currently displayed message
+  led_message *cur_message;
   // Message position
   uint16_t msg_pos;
   // Current message index, or -1 for special messages
   int8_t cur_msg_idx;
-  // Currently displayed message
-  led_message *cur_message;
+  // Animation data
+  union {
+    uint8_t wargames_map;
+  } anim_data;
   // Timer ID
   app_timer_id_t timer_id;
 } led_display;
