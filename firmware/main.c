@@ -102,13 +102,20 @@ int main(void) {
   NRF_LOG_INFO("Setting up display.");
 
   init_led_display(&display, &twi_master, 0x70);
-  display_load_storage();
   display_on(&display);
   display_set_brightness(&display, 8);
   display_set_message(&display, NULL);
 
   NRF_LOG_INFO("Setting up buttons.");
   buttons_init(&display);
+  if (is_center_pushed()) {
+    NRF_LOG_INFO("Resetting device!");
+    storage_erase_all();
+    NRF_LOG_INFO("Done!");
+  }
+
+  // Deferred until after possible reset
+  display_load_storage();
 
   NRF_LOG_INFO("Setting up BLE.");
   ble_stack_init(&display);

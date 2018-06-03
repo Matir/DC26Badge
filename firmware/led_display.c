@@ -166,6 +166,10 @@ static void display_update(led_display *disp) {
       if (disp->anim_data.wargames_map == 0xFF) {
         // We have a lock!
         pos = disp->msg_pos / (msg->speed * 4);
+        // Reset eventually
+        if (disp->msg_pos > 0x400) {
+          disp->anim_data.wargames_map = 0;
+        }
         if (pos & 1) {
           display_text(disp, (uint8_t *)msg->message);
         } else {
@@ -177,6 +181,8 @@ static void display_update(led_display *disp) {
           NRF_LOG_INFO("Wargames: Matched character!");
           rand = getrandom();
           disp->anim_data.wargames_map |= (1 << (rand & 0x7));
+          if (disp->anim_data.wargames_map == 0xFF)
+            disp->msg_pos = 0;
         }
         for(int i=0; i<LED_DISPLAY_WIDTH; i++) {
           if (disp->anim_data.wargames_map & (1 << i)) {

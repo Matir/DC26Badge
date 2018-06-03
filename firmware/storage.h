@@ -17,6 +17,7 @@
 #endif
 
 void storage_init();
+void storage_erase_all();
 
 // Load a message from flash
 ret_code_t get_message(void *dest, int *len, uint16_t id);

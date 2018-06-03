@@ -19,8 +19,8 @@ static led_display *display = NULL;
 void buttons_init(led_display *disp) {
   display = disp;
   const static app_button_cfg_t buttons[] = {
-    DEF_BUTTON(JOYSTICK_UP, handle_joystick_button),
     DEF_BUTTON(JOYSTICK_CENTER, handle_joystick_button),
+    DEF_BUTTON(JOYSTICK_UP, handle_joystick_button),
     DEF_BUTTON(JOYSTICK_LEFT, handle_joystick_button),
     DEF_BUTTON(JOYSTICK_RIGHT, handle_joystick_button),
     DEF_BUTTON(JOYSTICK_DOWN, handle_joystick_button),
@@ -35,6 +35,10 @@ void joystick_set_enable(uint8_t enabled) {
 
 void buttons_set_ble_accept_callback(ble_callback_t *ble_cb) {
   ble_accept_cb = ble_cb;
+}
+
+bool is_center_pushed() {
+  return app_button_is_pushed(0);
 }
 
 static void handle_joystick_button(uint8_t pin_no, uint8_t button_action) {

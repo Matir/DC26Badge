@@ -5,12 +5,16 @@
 
 #include "nrf_log.h"
 
+#define FILE_MAX 0xFFFF
+
 static void storage_evt_handler(const fds_evt_t * const p_evt);
 static ret_code_t storage_get(void *dest, int *len, const uint16_t file, const uint16_t record);
 static ret_code_t storage_save(void *src, const int len, const uint16_t file, const uint16_t record_key);
 static ret_code_t maybe_gc(bool force);
+static bool storage_erase_next(bool init);
 
 static volatile int storage_init_done = 0;
+static volatile bool in_erase = false;
 
 #ifdef STORAGE_DEBUG
 # define S_DBG NRF_LOG_INFO
@@ -24,6 +28,35 @@ void storage_init() {
   APP_ERROR_CHECK(fds_init());
   while(!storage_init_done);
   NRF_LOG_INFO("FDS initialized.");
+}
+
+void storage_erase_all() {
+  in_erase = true;
+  storage_erase_next(true);
+  while(in_erase);
+}
+
+// Returns true so long as more are to be done
+static bool storage_erase_next(bool init) {
+  static uint16_t file;
+  ret_code_t rv = NRF_SUCCESS;
+
+  if (init)
+    file = 0;
+
+  for (;file < FILE_MAX;file++) {
+    fds_record_desc_t desc;
+    fds_find_token_t token={0};
+    rv = fds_record_find_in_file(file, &desc, &token);
+    if (rv == FDS_ERR_NOT_FOUND)
+      continue;
+
+    rv = fds_file_delete(file);
+    if (rv == FDS_ERR_NO_SPACE_IN_QUEUES)
+      return true;
+  }
+
+  return false;
 }
 
 static void storage_evt_handler(const fds_evt_t * const p_fds_evt) {
@@ -43,6 +76,18 @@ static void storage_evt_handler(const fds_evt_t * const p_fds_evt) {
         fds_gc();
       } else {
         maybe_gc(false);
+      }
+      break;
+    case FDS_EVT_DEL_FILE:
+      if (in_erase && !storage_erase_next(false)) {
+        S_DBG("Done erasing, starting gc.");
+        fds_gc();
+      }
+      break;
+    case FDS_EVT_GC:
+      if (in_erase) {
+        S_DBG("Erase finished.");
+        in_erase = false;
       }
       break;
     default:
@@ -113,6 +158,11 @@ static ret_code_t storage_save(void *src, const int len, const uint16_t file, co
   if (src == NULL) {
     return NRF_ERROR_INVALID_PARAM;
   }
+  S_DBG("Saving: %02x %02x %02x %02x",
+      ((char *)(src))[0],
+      ((char *)(src))[1],
+      ((char *)(src))[2],
+      ((char *)(src))[3]);
 
   // Set up the record
   fds_record_t record = {
@@ -130,11 +180,13 @@ static ret_code_t storage_save(void *src, const int len, const uint16_t file, co
   }
 
   fds_record_desc_t record_desc;
-  fds_find_token_t token;
+  fds_find_token_t token = {0};
   ret_code_t rv;
   if (fds_record_find(file, record_key, &record_desc, &token) == FDS_ERR_NOT_FOUND) {
+    S_DBG("Performing write.");
     rv = fds_record_write(&record_desc, &record);
   } else {
+    S_DBG("Performing update.");
     rv = fds_record_update(&record_desc, &record);
   }
   if (rv != FDS_SUCCESS) {
