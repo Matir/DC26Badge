@@ -5,6 +5,7 @@
 #include "app_scheduler.h"
 #include "nrf_log.h"
 #include "ble_gap.h"
+#include "crc16.h"
 
 #include "led_display.h"
 #include "storage.h"
@@ -21,10 +22,12 @@ static inline ret_code_t display_i2c_send(
 static void display_timer_handler(void *context);
 static void display_update_callback(void *event_data, uint16_t event_size);
 static void display_update(led_display *disp);
+static void refresh_crcs();
+static uint16_t crc_message(unsigned int i);
+static bool message_crc_dirty(unsigned int i);
 
 /**
  * Storage for available messages.
- * TODO: load from storage!
  */
 led_message message_set[NUM_MESSAGES] = {
   {
@@ -38,6 +41,11 @@ led_message message_set[NUM_MESSAGES] = {
     .speed = 8,
   }
 };
+
+/**
+ * Check for dirty messages.
+ */
+static uint16_t message_crcs[NUM_MESSAGES];
 
 /**
  * Initialize the display struct.
@@ -269,7 +277,6 @@ void display_dec_brightness(led_display *disp) {
   display_set_brightness(disp, disp->brightness - 1);
 }
 
-
 /**
  * Load from storage
  */
@@ -285,6 +292,7 @@ ret_code_t display_load_storage() {
       continue;
     return rv;
   }
+  refresh_crcs();
   return NRF_SUCCESS;
 }
 
@@ -293,11 +301,38 @@ ret_code_t display_load_storage() {
  */
 ret_code_t display_save_storage() {
   for (uint16_t i=0; i<NUM_MESSAGES; i++) {
+    if (!message_crc_dirty((unsigned int)i))
+      continue;
     int len = sizeof(led_message);
     ret_code_t rv = save_message(&message_set[i], len, i);
     if(rv == NRF_SUCCESS)
       continue;
     return rv;
   }
+  refresh_crcs();
   return NRF_SUCCESS;
+}
+
+/**
+ * Update the CRCs for the messages.
+ */
+static void refresh_crcs() {
+  for (unsigned int i=0; i<NUM_MESSAGES; i++)
+    message_crcs[i] = crc_message(i);
+}
+
+/**
+ * Calculate the CRC for a message.
+ */
+static uint16_t crc_message(unsigned int i) {
+  if (i > NUM_MESSAGES)
+    return 0;
+  return crc16_compute((uint8_t *)&message_set[i], sizeof(led_message), NULL);
+}
+
+/**
+ * Check if a message has been changed.
+ */
+static bool message_crc_dirty(unsigned int i) {
+  return message_crcs[i] != crc_message(i);
 }

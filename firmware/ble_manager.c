@@ -260,15 +260,6 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
     case BLE_GATTS_EVT_WRITE:
       EVT_DEBUG("GATTS Write event");
       uint16_t handle = p_ble_evt->evt.gatts_evt.params.write.handle;
-      if (handle == 0x0000) {
-        // Long write, yay!
-        handle = (uint16_t) *p_ble_evt->evt.gatts_evt.params.write.data;
-        EVT_DEBUG("Data: %02x %02x %02x %02x",
-          p_ble_evt->evt.gatts_evt.params.write.data[0],
-          p_ble_evt->evt.gatts_evt.params.write.data[1],
-          p_ble_evt->evt.gatts_evt.params.write.data[2],
-          p_ble_evt->evt.gatts_evt.params.write.data[3]);
-      }
       EVT_DEBUG("Handle: %d", handle);
       if (handle == ble_badge_svc.onoff_handles.value_handle) {
         ble_badge_handle_onoff_write(
@@ -296,16 +287,8 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
           advertising_init();
         }
       } else {
-        ble_gatts_char_handles_t *msg_handles = ble_badge_svc.message_handles;
-        for (int i=0; i<NUM_MESSAGES; i++) {
-          if (handle == msg_handles[i].value_handle) {
-            // Save on update
-            EVT_DEBUG("Saving message: %d %s",
-                i, (uint32_t)message_set[i].message);
-            save_message(&message_set[i], sizeof(led_message), i);
-            break;
-          }
-        }
+        // Save all dirty messages
+        display_save_storage();
       }
       break;
     case BLE_GATTS_EVT_TIMEOUT:
