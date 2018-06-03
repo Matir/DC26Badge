@@ -12,7 +12,9 @@
 #define FILE_ID_MESSAGES          0x0002
 #define RECORD_ID_MESSAGE_BASE    0x0001
 
+#ifdef DEBUG
 #define STORAGE_DEBUG
+#endif
 
 void storage_init();
 

@@ -10,6 +10,7 @@
 #include "nrf.h"
 #include "nrf_log.h"
 #include "app_error.h"
+#include "app_scheduler.h"
 #include "ble.h"
 #include "ble_srv_common.h"
 #include "ble_advertising.h"
@@ -58,6 +59,7 @@ static void advertising_init();
 static void peer_manager_init();
 static void qwr_init();
 static uint16_t qwr_evt_handler(struct nrf_ble_qwr_t *p_qwr, nrf_ble_qwr_evt_t *p_evt);
+static void app_save_messages(void *unused_ptr, uint16_t unused_size);
 
 char *ble_evt_decode(uint16_t code);
 
@@ -104,10 +106,12 @@ void ble_manager_start_advertising() {
   MASK_CHANNEL(m_advertising.adv_params.channel_mask, 39);
   ret_code_t rv = ble_advertising_start(&m_advertising, BLE_ADV_MODE_FAST);
   if (rv == NRF_ERROR_CONN_COUNT) {
-    NRF_LOG_INFO("Error, can't advertise while connected.");
+    NRF_LOG_ERROR("Can't advertise while connected.");
     return;
   }
-  APP_ERROR_CHECK(rv);
+  if (rv != NRF_SUCCESS) {
+    NRF_LOG_ERROR("Error advertising: %d", rv);
+  }
 }
 
 static void ble_setup_badge_service(led_display *disp) {
@@ -288,7 +292,7 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
         }
       } else {
         // Save all dirty messages
-        display_save_storage();
+        app_sched_event_put(NULL, 0, app_save_messages);
       }
       break;
     case BLE_GATTS_EVT_TIMEOUT:
@@ -366,6 +370,10 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
       EVT_DEBUG("Unhandled BLE event: %s", (uint32_t)ble_evt_decode(p_ble_evt->header.evt_id));
       break;
   }
+}
+
+static void app_save_messages(void *unused_ptr, uint16_t unused_size) {
+  display_save_storage();
 }
 
 void ble_match_request_respond(uint8_t matched) {

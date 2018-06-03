@@ -113,7 +113,6 @@ static ret_code_t storage_save(void *src, const int len, const uint16_t file, co
   if (src == NULL) {
     return NRF_ERROR_INVALID_PARAM;
   }
-  S_DBG("SRC: %08x", src);
 
   // Set up the record
   fds_record_t record = {

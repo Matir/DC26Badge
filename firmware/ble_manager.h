@@ -8,7 +8,12 @@
 #include "ble_gatts.h"
 #include "ble_types.h"
 
-#define DEBUG_BLE 1
+#ifdef DEBUG
+# define DEBUG_BLE 1
+#else
+# define DEBUG_BLE 0
+#endif
+
 // BLE_SECURITY can be disabled for debugging
 #define BLE_SECURITY 1
 

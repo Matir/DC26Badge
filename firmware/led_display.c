@@ -300,16 +300,20 @@ ret_code_t display_load_storage() {
  * Save to storage
  */
 ret_code_t display_save_storage() {
+  bool any_dirty = false;
   for (uint16_t i=0; i<NUM_MESSAGES; i++) {
     if (!message_crc_dirty((unsigned int)i))
       continue;
+    any_dirty = true;
+    NRF_LOG_INFO("Saving message %d", i);
     int len = sizeof(led_message);
     ret_code_t rv = save_message(&message_set[i], len, i);
     if(rv == NRF_SUCCESS)
       continue;
     return rv;
   }
-  refresh_crcs();
+  if (any_dirty)
+    refresh_crcs();
   return NRF_SUCCESS;
 }
 
