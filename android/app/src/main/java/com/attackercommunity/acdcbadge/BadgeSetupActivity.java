@@ -68,7 +68,7 @@ public class BadgeSetupActivity extends AppCompatActivity {
         LinearLayoutManager recyclerManager = new LinearLayoutManager(this);
         mMessageView.setHasFixedSize(true);
         mMessageView.setLayoutManager(recyclerManager);
-        mMessageAdapter = new MessageListAdapter();
+        mMessageAdapter = new MessageListAdapter(mMessageChanger);
         mMessageView.setAdapter(mMessageAdapter);
     }
 
@@ -205,6 +205,18 @@ public class BadgeSetupActivity extends AppCompatActivity {
         public void onClick(View v) {
             mBadge.saveMessages();
             Log.i(TAG, "Save clicked.");
+        }
+    };
+
+    private MessageListAdapter.IActiveMessageChanger mMessageChanger = new MessageListAdapter.IActiveMessageChanger() {
+        @Override
+        public void onActiveMessageChanged(int pos) {
+            try {
+                mBadge.setCurrentMessage((byte) pos);
+            } catch (BLEBadge.BLEBadgeException ex) {
+                Log.e(TAG, "Error changing message.", ex);
+                displayErrorSnackbar(ex.toString());
+            }
         }
     };
 }

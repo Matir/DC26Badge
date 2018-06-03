@@ -46,6 +46,7 @@ void init_led_display(led_display *disp, nrfx_twim_t *twi_instance,
     uint8_t addr) {
   disp->addr = addr & 0x7F;
   disp->twi_instance = twi_instance;
+  disp->cur_msg_idx = 0;
   disp->cur_message = &message_set[0];
   disp->msg_pos = 0;
   disp->brightness = 0;
@@ -190,6 +191,7 @@ ret_code_t display_mode(led_display *disp, uint8_t on, uint8_t blink) {
 void display_set_message(led_display *disp, led_message *msg) {
   if (!msg) {
     msg = &message_set[0];
+    disp->cur_msg_idx = 0;
   }
   disp->cur_message = msg;
   disp->msg_pos = 0;
@@ -201,19 +203,23 @@ void display_set_message(led_display *disp, led_message *msg) {
  */
 void display_show_pairing_code(led_display *disp, char *pairing_code) {
   static led_message *old_message = NULL;
+  static int8_t old_msg_idx;
   static led_message pairing_message = {
     .update = MSG_STATIC,
   };
   if (!pairing_code) {
     if (old_message) {
+      disp->cur_msg_idx = old_msg_idx;
       display_set_message(disp, old_message);
       old_message = NULL;
     }
     return;
   }
   old_message = disp->cur_message;
+  old_msg_idx = disp->cur_msg_idx;
   memcpy(&pairing_message.message, pairing_code, BLE_GAP_PASSKEY_LEN);
   pairing_message.message[BLE_GAP_PASSKEY_LEN] = '\0';
+  disp->cur_msg_idx = -1;
   display_set_message(disp, &pairing_message);
 }
 STATIC_ASSERT(MSG_MAX_LEN > BLE_GAP_PASSKEY_LEN,
@@ -224,28 +230,25 @@ STATIC_ASSERT(MSG_MAX_LEN > BLE_GAP_PASSKEY_LEN,
  * Next message
  */
 void display_next_message(led_display *disp) {
-  for(int i=0; i<NUM_MESSAGES; i++) {
-    if (disp->cur_message == &message_set[i]) {
-      if (++i == NUM_MESSAGES) i = 0;
-      display_set_message(disp, &message_set[i]);
-      return;
-    }
-  }
+  if (disp->cur_msg_idx == -1)
+    return;
+  disp->cur_msg_idx++;
+  if (disp->cur_msg_idx == NUM_MESSAGES)
+    disp->cur_msg_idx = 0;
+  display_set_message(disp, &message_set[disp->cur_msg_idx]);
 }
 
 /**
  * Previous message
  */
 void display_prev_message(led_display *disp) {
-  for(int i=0; i<NUM_MESSAGES; i++) {
-    if (disp->cur_message == &message_set[i]) {
-      if (i-- == 0) {
-        i = NUM_MESSAGES-1;
-      }
-      display_set_message(disp, &message_set[i]);
-      return;
-    }
-  }
+  if (disp->cur_msg_idx == -1)
+    return;
+  if (disp->cur_msg_idx == 0)
+    disp->cur_msg_idx = NUM_MESSAGES-1;
+  else
+    disp->cur_msg_idx--;
+  display_set_message(disp, &message_set[disp->cur_msg_idx]);
 }
 
 /**

@@ -48,6 +48,8 @@ typedef struct _led_display {
   uint8_t brightness;
   // Message position
   uint16_t msg_pos;
+  // Current message index, or -1 for special messages
+  int8_t cur_msg_idx;
   // Currently displayed message
   led_message *cur_message;
   // Timer ID

@@ -24,6 +24,7 @@ public class MessageListAdapter extends RecyclerView.Adapter<MessageListAdapter.
     private static final List<MessageMode> modeOptions = MessageMode.asList();
     private static final List<MessageSpeed> speedOptions = MessageSpeed.asList();
 
+    private final IActiveMessageChanger messageChanger;
     private final List<BLEBadge.BLEBadgeMessage> messageSet = new ArrayList<>();
     private int checkedPosition = 0;
 
@@ -49,6 +50,8 @@ public class MessageListAdapter extends RecyclerView.Adapter<MessageListAdapter.
                 @Override
                 public void onClick(View v) {
                     MessageListAdapter.this.checkedPosition = getAdapterPosition();
+                    MessageListAdapter.this.messageChanger.onActiveMessageChanged(
+                            MessageListAdapter.this.checkedPosition);
                     MessageListAdapter.this.notifyDataSetChanged();
                 }
             });
@@ -123,7 +126,10 @@ public class MessageListAdapter extends RecyclerView.Adapter<MessageListAdapter.
         }
     }
 
-    public MessageListAdapter() {}
+    public MessageListAdapter(IActiveMessageChanger changer) {
+        super();
+        messageChanger = changer;
+    }
 
     public void setMessages(List<BLEBadge.BLEBadgeMessage> messages) {
         synchronized (this) {
@@ -157,5 +163,9 @@ public class MessageListAdapter extends RecyclerView.Adapter<MessageListAdapter.
     @Override
     public int getItemCount() {
         return messageSet.size();
+    }
+
+    interface IActiveMessageChanger {
+        void onActiveMessageChanged(int pos);
     }
 }

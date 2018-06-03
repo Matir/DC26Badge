@@ -46,10 +46,12 @@ static void ble_error_handler(uint32_t nrf_error);
 static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context);
 static uint32_t ble_badge_add_onoff_characteristic();
 static uint32_t ble_badge_add_brightness_characteristic();
+static uint32_t ble_badge_add_index_characteristic();
 static uint32_t ble_badge_add_message_characteristics();
 static uint32_t ble_badge_add_message_characteristic(led_message *msg, uint16_t idx);
 static void ble_badge_handle_onoff_write(uint8_t val);
 static void ble_badge_handle_brightness_write(uint8_t val);
+static void ble_badge_handle_index_write(int8_t val);
 static void conn_params_init();
 static void gap_params_init();
 static void advertising_init();
@@ -126,6 +128,7 @@ static void ble_setup_badge_service(led_display *disp) {
   // Add the characteristics
   APP_ERROR_CHECK(ble_badge_add_onoff_characteristic());
   APP_ERROR_CHECK(ble_badge_add_brightness_characteristic());
+  APP_ERROR_CHECK(ble_badge_add_index_characteristic());
   APP_ERROR_CHECK(ble_badge_add_message_characteristics());
 
   // Register event handler
@@ -264,6 +267,10 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
         break;
       } else if (handle == ble_badge_svc.brightness_handles.value_handle) {
         ble_badge_handle_brightness_write(
+            p_ble_evt->evt.gatts_evt.params.write.data[0]);
+        break;
+      } else if (handle == ble_badge_svc.index_handles.value_handle) {
+        ble_badge_handle_index_write(
             p_ble_evt->evt.gatts_evt.params.write.data[0]);
         break;
       } else if (p_ble_evt->evt.gatts_evt.params.write.uuid.type
@@ -472,6 +479,55 @@ static uint32_t ble_badge_add_brightness_characteristic() {
       &char_md,
       &attr_value,
       &ble_badge_svc.brightness_handles);
+}
+
+static void ble_badge_handle_index_write(int8_t val) {
+  if (val < NUM_MESSAGES && val >= 0) {
+    ble_badge_svc.display->cur_msg_idx = val;
+    display_set_message(ble_badge_svc.display, &message_set[val]);
+  }
+}
+
+static uint32_t ble_badge_add_index_characteristic() {
+  ble_gatts_char_md_t char_md = {0};
+  ble_gatts_attr_md_t attr_md = {0};
+  ble_gatts_attr_t    attr_value = {0};
+  ble_uuid_t          ble_uuid;
+  static char char_desc[] = "Active Index";
+
+  char_md.char_props.read = 1;
+  char_md.char_props.write = 1;
+  char_md.char_props.write_wo_resp = 0;
+  char_md.p_char_user_desc = (uint8_t *)char_desc;
+  char_md.char_user_desc_size = strlen(char_desc);
+  char_md.char_user_desc_max_size = char_md.char_user_desc_size;
+
+#if BLE_SECURITY
+  BLE_GAP_CONN_SEC_MODE_SET_LESC_ENC_WITH_MITM(&attr_md.read_perm);
+  BLE_GAP_CONN_SEC_MODE_SET_LESC_ENC_WITH_MITM(&attr_md.write_perm);
+#else
+  BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.read_perm);  /*TODO: add security */
+  BLE_GAP_CONN_SEC_MODE_SET_OPEN(&attr_md.write_perm); /*TODO: add security */
+#endif
+  attr_md.vloc = BLE_GATTS_VLOC_USER;
+  attr_md.rd_auth = 0;
+  attr_md.wr_auth = 0;
+  attr_md.vlen = 0;
+
+  attr_value.p_uuid = &ble_uuid;
+  attr_value.p_attr_md = &attr_md;
+  attr_value.init_len = sizeof(int8_t);
+  attr_value.init_offs = 0;
+  attr_value.max_len = sizeof(int8_t);
+  attr_value.p_value = (uint8_t *)&ble_badge_svc.display->cur_msg_idx;
+
+  ble_uuid.type = ble_badge_svc.uuid_type;
+  ble_uuid.uuid = BADGE_INDEX_UUID;
+  return sd_ble_gatts_characteristic_add(
+      ble_badge_svc.service_handle,
+      &char_md,
+      &attr_value,
+      &ble_badge_svc.index_handles);
 }
 
 static uint32_t ble_badge_add_message_characteristics() {

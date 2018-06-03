@@ -51,15 +51,19 @@ static void handle_joystick_button(uint8_t pin_no, uint8_t button_action) {
       (uint32_t)pin_no);
   switch (pin_no) {
     case JOYSTICK_UP:
+      RETURN_IF(button_action != APP_BUTTON_PUSH);
       display_prev_message(display);
       break;
     case JOYSTICK_DOWN:
+      RETURN_IF(button_action != APP_BUTTON_PUSH);
       display_next_message(display);
       break;
     case JOYSTICK_LEFT:
+      RETURN_IF(button_action != APP_BUTTON_PUSH);
       display_dec_brightness(display);
       break;
     case JOYSTICK_RIGHT:
+      RETURN_IF(button_action != APP_BUTTON_PUSH);
       display_inc_brightness(display);
       break;
     case JOYSTICK_CENTER:

@@ -15,6 +15,7 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
@@ -41,6 +42,7 @@ public final class BLEBadge {
     // Data from the badge itself
     private boolean mDisplayEnabled = false;
     private byte mBrightness = 0;
+    private byte mCurrentMessage = 0;
     private final List<BLEBadgeMessage> mMessages = new ArrayList<>();
     private final List<BluetoothGattCharacteristic> mMessageChars = new ArrayList<>();
 
@@ -90,6 +92,7 @@ public final class BLEBadge {
     public void setBrightness(byte newVal) throws BLEBadgeException {
         if (newVal > Constants.MaxBrightness)
             throw new BLEBadgeException("Brightness exceeds maximum value.");
+        mBrightness = newVal;
         BluetoothGattCharacteristic bright = mBadgeService.getCharacteristic(
                 Constants.DisplayBrightnessUUID);
         if (bright == null) {
@@ -98,6 +101,25 @@ public final class BLEBadge {
         }
         bright.setValue(newVal, BluetoothGattCharacteristic.FORMAT_UINT8, 0);
         mQueue.add(GattQueueOperation.Write(bright));
+    }
+
+    public byte getCurrentMessage() {
+        return mCurrentMessage;
+    }
+
+    public void setCurrentMessage(byte newVal) throws BLEBadgeException {
+        if (newVal < 0 || newVal > mMessages.size()) {
+            throw new BLEBadgeException("New Message Out of Range");
+        }
+        mCurrentMessage = newVal;
+        BluetoothGattCharacteristic index = mBadgeService.getCharacteristic(
+                Constants.BadgeIndexUUID);
+        if (index == null) {
+            Log.e(TAG, "No characteristic found in setCurrentMessage.");
+            return;
+        }
+        index.setValue(newVal, BluetoothGattCharacteristic.FORMAT_SINT8, 0);
+        mQueue.add(GattQueueOperation.Write(index));
     }
 
     // Get the messages
@@ -236,6 +258,7 @@ public final class BLEBadge {
     private void updateState() {
         if (mBadgeService == null)
             return;
+
         // Update display state
         BluetoothGattCharacteristic onOff = mBadgeService.getCharacteristic(
                 Constants.DisplayOnOffUUID);
@@ -245,6 +268,7 @@ public final class BLEBadge {
         } else {
             Log.w(TAG, "Could not find ON/OFF Characteristic in updateState.");
         }
+
         // Update display brightness
         BluetoothGattCharacteristic brightness = mBadgeService.getCharacteristic(
                 Constants.DisplayBrightnessUUID);
@@ -254,6 +278,17 @@ public final class BLEBadge {
         } else {
             Log.w(TAG, "Could not find brightness characteristic in updateState.");
         }
+
+        // Update message index
+        BluetoothGattCharacteristic index = mBadgeService.getCharacteristic(
+                Constants.BadgeIndexUUID);
+        if (index != null) {
+            Integer intVal = index.getIntValue(BluetoothGattCharacteristic.FORMAT_SINT8, 0);
+            mCurrentMessage = intVal.byteValue();
+        } else {
+            Log.w(TAG, "Could not find index characteristic in updateState.");
+        }
+
         // Update messages
         UUID msgUUID = Constants.MessageUUID;
         List<BLEBadgeMessage> messages = new ArrayList<>();
@@ -275,6 +310,7 @@ public final class BLEBadge {
             mMessageChars.clear();
             mMessageChars.addAll(characteristics);
         }
+
         // Finally notify that state has changed
         notifyChanged();
     }
@@ -301,11 +337,23 @@ public final class BLEBadge {
         public static BLEBadgeMessage fromBytes(byte[] value) throws BLEBadgeException {
             ByteBuffer readBuffer = ByteBuffer.wrap(value);
             readBuffer.order(ByteOrder.LITTLE_ENDIAN);
-            MessageMode mode = MessageMode.fromByte(readBuffer.get());
+            MessageMode mode;
+            try {
+                mode = MessageMode.fromByte(readBuffer.get());
+            } catch (BufferUnderflowException ex) {
+                Log.e(TAG, "Buffer underflow!", ex);
+                throw new BLEBadgeException("Characteristic too short!");
+            }
             if (mode == null) {
                 throw new BLEBadgeException("Unknown message mode!");
             }
-            short rawRate = readBuffer.getShort();
+            short rawRate;
+            try {
+                rawRate = readBuffer.getShort();
+            } catch (BufferUnderflowException ex) {
+                Log.e(TAG, "Buffer underflow!", ex);
+                throw new BLEBadgeException("Characteristic too short!");
+            }
             MessageSpeed rate = MessageSpeed.fromSpeed(rawRate);
             if (rate == null) {
                 if (Constants.PermitUnknownRates) {
