@@ -6,7 +6,7 @@
 
 #include "app_scheduler.h"
 #include "app_timer.h"
-
+#include "nrf_crypto.h"
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
 #include "nrf_log_default_backends.h"
@@ -78,6 +78,11 @@ static inline void gpio_init() {
   }
 }
 
+static inline void crypto_init() {
+  nrf_crypto_init();
+  nrf_crypto_rng_init(NULL, NULL);
+}
+
 int main(void) {
   nrfx_twim_t twi_master = NRFX_TWIM_INSTANCE(0);
 
@@ -92,6 +97,7 @@ int main(void) {
   twi_init(&twi_master);
   gpio_init();
   storage_init();
+  crypto_init();
 
   NRF_LOG_INFO("Setting up display.");
 

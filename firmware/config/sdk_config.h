@@ -9564,6 +9564,7 @@
 
 #define BLE_LESC_ENABLED 1
 #define NRF_CRYPTO_RNG_STATIC_MEMORY_BUFFERS_ENABLED 1
+// I think there's an SDK bug when this is set to 1
 #define NRF_CRYPTO_RNG_AUTO_INIT_ENABLED 0
 
 #endif //SDK_CONFIG_H

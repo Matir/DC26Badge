@@ -6,6 +6,7 @@
 #include "nrf_log.h"
 #include "ble_gap.h"
 #include "crc16.h"
+#include "nrf_crypto.h"
 
 #include "led_display.h"
 #include "storage.h"
@@ -20,7 +21,7 @@
 #define WARGAMES_MATCH_MASK ((1 << WARGAMES_MATCH_BITS) - 1)
 #define WARGAMES_MATCH(x) (((x) & WARGAMES_MATCH_MASK) == WARGAMES_MATCH_MASK)
 
-#define RANDOM_BUF_SZ 256
+#define RANDOM_BUF_SZ 128
 
 static inline ret_code_t display_i2c_send(
     led_display *disp, const uint8_t const *data, uint8_t len);
@@ -38,12 +39,12 @@ static void cook_random();
  */
 led_message message_set[NUM_MESSAGES] = {
   {
-    .message = "HACK THE PLANET   ",
+    .message = "HACK THE PLANET",
     .update = MSG_SCROLL,
     .speed = 8,
   },
   {
-    .message = "HACK ALL THE THINGS   ",
+    .message = "HACK ALL THE THINGS",
     .update = MSG_SCROLL,
     .speed = 8,
   }
@@ -84,6 +85,11 @@ void init_led_display(led_display *disp, nrfx_twim_t *twi_instance,
         (void *)disp));
 
   NRF_LOG_INFO("Display setup at 0x%08x", (uint32_t)disp);
+
+  ret_code_t rv = nrf_crypto_rng_vector_generate(random_data, RANDOM_BUF_SZ);
+  if (rv) {
+    NRF_LOG_ERROR("Error generating random data: %d", rv);
+  }
 }
 
 /**
@@ -168,15 +174,16 @@ static void display_update(led_display *disp) {
       } else {
         uint8_t rand = getrandom();
         if (WARGAMES_MATCH(rand)) {
+          NRF_LOG_INFO("Wargames: Matched character!");
           rand = getrandom();
-          disp->anim_data.wargames_map |= (1 << rand & 0x7);
+          disp->anim_data.wargames_map |= (1 << (rand & 0x7));
         }
         for(int i=0; i<LED_DISPLAY_WIDTH; i++) {
           if (disp->anim_data.wargames_map & (1 << i)) {
             buf[i] = msg->message[i];
           } else {
             rand = getrandom();
-            buf[i] = char_options[rand % sizeof(char_options)];
+            buf[i] = char_options[rand % 32];
           }
         }
         display_text(disp, (uint8_t *)buf);
