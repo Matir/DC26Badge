@@ -67,7 +67,7 @@ static uint16_t m_conn_handle = BLE_CONN_HANDLE_INVALID;
 static uint16_t m_pending_conn_handle = BLE_CONN_HANDLE_INVALID;
 static ble_uuid_t m_adv_uuids[1] = {0};
 
-static char device_name[32] = DEVICE_NAME;
+static char device_name[32] __attribute__ ((aligned(4))) = DEVICE_NAME;
 static ble_badge_service_t ble_badge_svc = {0};
 
 void ble_stack_init(led_display *disp) {
@@ -107,10 +107,12 @@ void ble_manager_start_advertising() {
   ret_code_t rv = ble_advertising_start(&m_advertising, BLE_ADV_MODE_FAST);
   if (rv == NRF_ERROR_CONN_COUNT) {
     NRF_LOG_ERROR("Can't advertise while connected.");
+    joystick_set_enable(1);
     return;
   }
   if (rv != NRF_SUCCESS) {
     NRF_LOG_ERROR("Error advertising: %d", rv);
+    joystick_set_enable(1);
   }
 }
 
