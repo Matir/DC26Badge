@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.os.Handler;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -18,7 +19,8 @@ import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
 
-public class BadgeSetupActivity extends AppCompatActivity {
+public class BadgeSetupActivity extends AppCompatActivity
+        implements NameChangeDialog.BadgeEditNameListener {
     private static final String TAG = "BadgeSetupActivity";
 
     private BluetoothDevice mDevice = null;
@@ -31,6 +33,7 @@ public class BadgeSetupActivity extends AppCompatActivity {
     private ProgressBar mLoadingSpinner = null;
     private Button mSaveButton = null;
     private Button mCancelButton = null;
+    private Button mChangeNameButton = null;
     private RecyclerView mMessageView = null;
     private MessageListAdapter mMessageAdapter = null;
 
@@ -63,6 +66,7 @@ public class BadgeSetupActivity extends AppCompatActivity {
         mCancelButton.setOnClickListener(mCancelListener);
         mSaveButton.setOnClickListener(mSaveListener);
         mBadgeBrightnessBar.setOnSeekBarChangeListener(mBrightnessListener);
+        mChangeNameButton.setOnClickListener(mChangeNameListener);
 
         // Setup the recycler view
         LinearLayoutManager recyclerManager = new LinearLayoutManager(this);
@@ -81,6 +85,7 @@ public class BadgeSetupActivity extends AppCompatActivity {
         mCancelButton = findViewById(R.id.cancel_btn);
         mSaveButton = findViewById(R.id.save_btn);
         mMessageView = findViewById(R.id.message_recycler_view);
+        mChangeNameButton = findViewById(R.id.name_change_btn);
     }
 
     @Override
@@ -149,7 +154,7 @@ public class BadgeSetupActivity extends AppCompatActivity {
     };
 
     private final SeekBar.OnSeekBarChangeListener mBrightnessListener = new SeekBar.OnSeekBarChangeListener() {
-        private static final int delayMs = 50;  // Don't immediately update when being dragged
+        private static final int delayMs = 100;  // Don't immediately update when being dragged
         private boolean updateInFlight = false;
         private int newValue;
         private final Handler handler = new Handler();
@@ -163,32 +168,28 @@ public class BadgeSetupActivity extends AppCompatActivity {
                 if (updateInFlight)
                     return;
                 updateInFlight = true;
-                handler.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
+            }
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        mBadge.setBrightness((byte) newValue);
+                    } catch (BLEBadge.BLEBadgeException ex) {
+                        displayErrorSnackbar(ex.toString());
+                    } finally {
                         synchronized (mBrightnessListener) {
                             updateInFlight = false;
                         }
-                        try {
-                            mBadge.setBrightness((byte) newValue);
-                        } catch (BLEBadge.BLEBadgeException ex) {
-                            displayErrorSnackbar(ex.toString());
-                        }
                     }
-                }, delayMs);
-
-            }
+                }
+            }, delayMs);
         }
 
         @Override
-        public void onStartTrackingTouch(SeekBar seekBar) {
-
-        }
+        public void onStartTrackingTouch(SeekBar seekBar) { }
 
         @Override
-        public void onStopTrackingTouch(SeekBar seekBar) {
-
-        }
+        public void onStopTrackingTouch(SeekBar seekBar) { }
     };
 
     private View.OnClickListener mCancelListener = new View.OnClickListener() {
@@ -219,4 +220,26 @@ public class BadgeSetupActivity extends AppCompatActivity {
             }
         }
     };
+
+    private View.OnClickListener mChangeNameListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            DialogFragment dialog = new NameChangeDialog();
+            dialog.show(getSupportFragmentManager(), "NameChangeDialog");
+        }
+    };
+
+    public String getCurrentName() {
+        if (mBadge != null)
+            return mBadge.getName();
+        return "";
+    }
+
+    public void setNewName(String name) {
+        if (mBadge == null) {
+            Log.e(TAG, "Changing name with no associated badge!");
+            return;
+        }
+        mBadge.setName(name);
+    }
 }

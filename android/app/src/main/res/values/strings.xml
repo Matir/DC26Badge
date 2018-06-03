@@ -1,6 +1,9 @@
 <resources>
     <string name="app_name">AC DC Badge</string>
     <string name="action_settings">Settings</string>
+    <string name="change_title">Change Badge Name</string>
+    <string name="cancel">Cancel</string>
+    <string name="change">Change</string>
     <string name="icon_android">&#xf17b;</string>
     <string name="icon_globe">&#xf0ac;</string>
 </resources>

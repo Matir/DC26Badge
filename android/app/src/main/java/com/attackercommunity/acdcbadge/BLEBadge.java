@@ -59,6 +59,20 @@ public final class BLEBadge {
         return mDevice.getName();
     }
 
+    // Change the name of the device
+    public void setName(String newName) {
+        if (mBluetoothGatt == null || mQueue == null || !connected()) {
+            Log.e(TAG, "Not connected, can't change name!");
+            return;
+        }
+        BluetoothGattService gapService = mBluetoothGatt.getService(
+                Constants.GenericAccessServiceUUID);
+        BluetoothGattCharacteristic nameChar = gapService.getCharacteristic(
+                Constants.DeviceNameUUID);
+        nameChar.setValue(newName);
+        mQueue.add(GattQueueOperation.Write(nameChar));
+    }
+
     // Get the address of the device.
     public String getAddress() {
         return mDevice.getAddress();
