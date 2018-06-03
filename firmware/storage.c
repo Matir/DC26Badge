@@ -12,6 +12,12 @@ static ret_code_t maybe_gc(bool force);
 
 static volatile int storage_init_done = 0;
 
+#ifdef STORAGE_DEBUG
+# define S_DBG NRF_LOG_INFO
+#else
+# define S_DBG(...)
+#endif
+
 void storage_init() {
   fds_register(storage_evt_handler);
   NRF_LOG_INFO("Initializing FDS...");
@@ -23,12 +29,15 @@ void storage_init() {
 static void storage_evt_handler(const fds_evt_t * const p_fds_evt) {
   switch (p_fds_evt->id) {
     case FDS_EVT_INIT:
+      S_DBG("Storage init done.");
       storage_init_done = 1;
       break;
     case FDS_EVT_WRITE:
     case FDS_EVT_UPDATE:
       if (p_fds_evt->result != FDS_SUCCESS) {
         NRF_LOG_ERROR("Write/updated failed!");
+      } else {
+        S_DBG("Write/update succeeded.");
       }
       if (p_fds_evt->result == FDS_ERR_NO_SPACE_IN_FLASH) {
         fds_gc();
@@ -56,8 +65,8 @@ static ret_code_t storage_get(void *dest, int *len, const uint16_t file, const u
   }
 
   ret_code_t rv;
-  fds_record_desc_t record_desc;
-  fds_find_token_t find_token;
+  fds_record_desc_t record_desc = {0};
+  fds_find_token_t find_token = {0};
 
   rv = fds_record_find(
       file,
@@ -65,12 +74,14 @@ static ret_code_t storage_get(void *dest, int *len, const uint16_t file, const u
       &record_desc,
       &find_token);
   if (rv != FDS_SUCCESS) {
+    S_DBG("Unable to find record: %d", rv);
     return rv;
   }
 
   fds_flash_record_t flash_record;
   rv = fds_record_open(&record_desc, &flash_record);
   if (rv != FDS_SUCCESS) {
+    S_DBG("Unable to open record: %d", rv);
     return rv;
   }
 
@@ -102,6 +113,7 @@ static ret_code_t storage_save(void *src, const int len, const uint16_t file, co
   if (src == NULL) {
     return NRF_ERROR_INVALID_PARAM;
   }
+  S_DBG("SRC: %08x", src);
 
   // Set up the record
   fds_record_t record = {
@@ -120,11 +132,16 @@ static ret_code_t storage_save(void *src, const int len, const uint16_t file, co
 
   fds_record_desc_t record_desc;
   fds_find_token_t token;
+  ret_code_t rv;
   if (fds_record_find(file, record_key, &record_desc, &token) == FDS_ERR_NOT_FOUND) {
-    return fds_record_write(&record_desc, &record);
+    rv = fds_record_write(&record_desc, &record);
   } else {
-    return fds_record_update(&record_desc, &record);
+    rv = fds_record_update(&record_desc, &record);
   }
+  if (rv != FDS_SUCCESS) {
+    S_DBG("Write failed: %d", rv);
+  }
+  return rv;
 }
 
 static ret_code_t maybe_gc(bool force) {

@@ -281,7 +281,8 @@ ret_code_t display_load_storage() {
       continue;
     // it's fine if they're not found
     if (rv == FDS_ERR_NOT_FOUND)
-      return NRF_SUCCESS;
+      // We can't return because there might be gaps!
+      continue;
     return rv;
   }
   return NRF_SUCCESS;

@@ -12,6 +12,8 @@
 #define FILE_ID_MESSAGES          0x0002
 #define RECORD_ID_MESSAGE_BASE    0x0001
 
+#define STORAGE_DEBUG
+
 void storage_init();
 
 // Load a message from flash

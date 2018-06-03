@@ -33,7 +33,7 @@ typedef struct _led_message {
   uint16_t speed;
   // Contents of message
   char message[MSG_MAX_LEN+1];
-} __attribute__ ((packed)) led_message;
+} __attribute__ ((packed, aligned(4))) led_message;
 
 typedef struct _led_display {
   // TWI instance to use
