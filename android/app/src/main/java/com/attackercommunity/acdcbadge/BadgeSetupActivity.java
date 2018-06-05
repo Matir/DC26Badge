@@ -131,6 +131,9 @@ public class BadgeSetupActivity extends AppCompatActivity
 
                         // Hide the spinner
                         mLoadingSpinner.setVisibility(View.GONE);
+
+                        // Show the selected message
+                        mMessageAdapter.setCheckedPosition(mBadge.getCurrentMessage());
                     } finally {
                         mInRefresh = false;
                     }

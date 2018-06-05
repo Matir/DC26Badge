@@ -17,6 +17,8 @@
 
 #define MSG_MAX_LEN 35  // One extra byte is reserved for null
 
+#define SCROLL_LOOP_SEPARATOR "       "
+
 #define NUM_MESSAGES 4
 
 typedef enum {
@@ -24,6 +26,7 @@ typedef enum {
   MSG_SCROLL,
   MSG_REPLACE,
   MSG_WARGAMES,
+  MSG_SCROLL_LOOP,
 } __attribute__ ((packed)) message_update_t;
 
 typedef struct _led_message {

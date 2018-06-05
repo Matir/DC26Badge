@@ -6,24 +6,25 @@
 #include "buttons.h"
 #include "storage.h"
 
-#include "nordic_common.h"
-#include "nrf.h"
-#include "nrf_log.h"
 #include "app_error.h"
 #include "app_scheduler.h"
 #include "ble.h"
-#include "ble_srv_common.h"
-#include "ble_advertising.h"
 #include "ble_advdata.h"
+#include "ble_advertising.h"
 #include "ble_conn_params.h"
 #include "ble_lesc.h"
+#include "ble_srv_common.h"
+#include "fds.h"
+#include "nordic_common.h"
+#include "nrf.h"
+#include "nrf_ble_gatt.h"
+#include "nrf_ble_qwr.h"
+#include "nrf_gpio.h"
+#include "nrf_log.h"
 #include "nrf_sdh.h"
 #include "nrf_sdh_ble.h"
 #include "nrf_sdh_soc.h"
-#include "nrf_ble_gatt.h"
-#include "nrf_ble_qwr.h"
 #include "peer_manager.h"
-#include "fds.h"
 
 #if DEBUG_BLE
 # define EVT_DEBUG NRF_LOG_INFO
@@ -42,6 +43,7 @@ NRF_BLE_GATT_DEF(m_gatt);
 NRF_BLE_QWR_DEF(m_qwr);
 BLE_ADVERTISING_DEF(m_advertising);
 
+static void ble_advertising_setup();
 static void ble_setup_badge_service(led_display *disp);
 static void ble_error_handler(uint32_t nrf_error);
 static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context);
@@ -89,6 +91,8 @@ void ble_stack_init(led_display *disp) {
   advertising_init();
 
   APP_ERROR_CHECK(nrf_ble_gatt_init(&m_gatt, NULL));
+  nrf_gpio_cfg_output(ADV_LED_PIN);
+  nrf_gpio_pin_set(ADV_LED_PIN); // we use low, so this is "off"
 
   //TODO: Add device information service
   ble_manager_start_advertising();
@@ -99,21 +103,28 @@ void ble_main(void) {
 }
 
 void ble_manager_start_advertising() {
-  NRF_LOG_INFO("Starting advertising...");
-  joystick_set_enable(0);
-  display_show_pairing_code(ble_badge_svc.display, NULL);
+  ble_advertising_setup();
+#ifdef DEBUG
   MASK_CHANNEL(m_advertising.adv_params.channel_mask, 38);
   MASK_CHANNEL(m_advertising.adv_params.channel_mask, 39);
+#endif
   ret_code_t rv = ble_advertising_start(&m_advertising, BLE_ADV_MODE_FAST);
   if (rv == NRF_ERROR_CONN_COUNT) {
     NRF_LOG_ERROR("Can't advertise while connected.");
-    joystick_set_enable(1);
+    joystick_enable();
     return;
   }
   if (rv != NRF_SUCCESS) {
     NRF_LOG_ERROR("Error advertising: %d", rv);
-    joystick_set_enable(1);
+    joystick_enable();
   }
+}
+
+static void ble_advertising_setup() {
+  NRF_LOG_INFO("Starting advertising...");
+  joystick_disable();
+  display_show_pairing_code(ble_badge_svc.display, NULL);
+  nrf_gpio_pin_clear(ADV_LED_PIN);
 }
 
 static void ble_setup_badge_service(led_display *disp) {
@@ -262,6 +273,9 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
       m_conn_handle = BLE_CONN_HANDLE_INVALID;
       m_pending_conn_handle = BLE_CONN_HANDLE_INVALID;
       display_show_pairing_code(ble_badge_svc.display, NULL);
+      // The advertising module will restart advertising automatically,
+      // so we put things back into advertising mode
+      ble_advertising_setup();
       break;
     case BLE_GATTS_EVT_WRITE:
       EVT_DEBUG("GATTS Write event");
@@ -331,7 +345,7 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
                 m_pending_conn_handle, key_type, NULL));
           break;
         }
-        joystick_set_enable(0);
+        joystick_disable();
         char passkey[BLE_GAP_PASSKEY_LEN+1] = {0};
         memcpy(&passkey, p_ble_evt->evt.gap_evt.params.passkey_display.passkey,
             BLE_GAP_PASSKEY_LEN);
@@ -350,8 +364,9 @@ static void ble_badge_on_ble_evt(ble_evt_t const *p_ble_evt, void *p_context) {
       break;
     case BLE_GAP_EVT_ADV_SET_TERMINATED:
       EVT_DEBUG("ADV_SET_TERMINATED");
+      nrf_gpio_pin_set(ADV_LED_PIN); // we use low, so this is "off"
       display_show_pairing_code(ble_badge_svc.display, NULL);
-      joystick_set_enable(1);
+      joystick_enable();
       break;
     case BLE_EVT_USER_MEM_REQUEST:
       sd_ble_user_mem_reply(p_ble_evt->evt.gap_evt.conn_handle, NULL);
@@ -380,7 +395,7 @@ static void app_save_messages(void *unused_ptr, uint16_t unused_size) {
 
 void ble_match_request_respond(uint8_t matched) {
   display_show_pairing_code(ble_badge_svc.display, NULL);
-  joystick_set_enable(1);
+  joystick_enable();
   if (m_pending_conn_handle == BLE_CONN_HANDLE_INVALID)
     return;
   uint8_t key_type;

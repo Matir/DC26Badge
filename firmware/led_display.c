@@ -20,6 +20,7 @@
 #define WARGAMES_MATCH_BITS 5
 #define WARGAMES_MATCH_MASK ((1 << WARGAMES_MATCH_BITS) - 1)
 #define WARGAMES_MATCH(x) (((x) & WARGAMES_MATCH_MASK) == WARGAMES_MATCH_MASK)
+#define WARGAMES_HOLD_TIME 0x400
 
 #define RANDOM_BUF_SZ 128
 
@@ -33,6 +34,8 @@ static uint16_t crc_message(unsigned int i);
 static bool message_crc_dirty(unsigned int i);
 static uint8_t getrandom();
 static void cook_random();
+
+static const char scroll_loop_separator[] = SCROLL_LOOP_SEPARATOR;
 
 /**
  * Storage for available messages.
@@ -167,10 +170,10 @@ static void display_update(led_display *disp) {
         // We have a lock!
         pos = disp->msg_pos / (msg->speed * 4);
         // Reset eventually
-        if (disp->msg_pos > 0x400) {
+        if (disp->msg_pos > WARGAMES_HOLD_TIME) {
           disp->anim_data.wargames_map = 0;
         }
-        if (pos & 1) {
+        if ((pos & 1) || (disp->msg_pos > (WARGAMES_HOLD_TIME/2))) {
           display_text(disp, (uint8_t *)msg->message);
         } else {
           display_text(disp, (uint8_t *)buf);
@@ -194,6 +197,31 @@ static void display_update(led_display *disp) {
         }
         display_text(disp, (uint8_t *)buf);
       }
+      break;
+
+    case MSG_SCROLL_LOOP:
+      len = strlen(msg->message);
+      pos = (disp->msg_pos / msg->speed) %
+        (len + sizeof(scroll_loop_separator) - 1);
+      if (pos < len) {
+        start = &(msg->message[pos]);
+        strncpy(buf, start, LED_DISPLAY_WIDTH);
+        len = strlen(start);
+        pos = 0;
+      } else {
+        pos -= len;
+        len = 0;
+      }
+      // Add the separator
+      if (len < LED_DISPLAY_WIDTH) {
+        start = (char *)&scroll_loop_separator[pos];
+        strncpy(buf+len, start, LED_DISPLAY_WIDTH - len);
+        len += strlen(start);
+      }
+      // Loop the beginning
+      if (len < LED_DISPLAY_WIDTH)
+        strncpy(buf+len, msg->message, LED_DISPLAY_WIDTH - len);
+      display_text(disp, (uint8_t *)buf);
       break;
 
     default:

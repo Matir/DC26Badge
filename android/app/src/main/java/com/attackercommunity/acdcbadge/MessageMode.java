@@ -9,7 +9,8 @@ public enum MessageMode {
     MSG_STATIC (0, "Static"),
     MSG_SCROLL (1, "Scroll"),
     MSG_REPLACE (2, "Replace"),
-    MSG_WARGAMES (3, "Wargames");
+    MSG_WARGAMES (3, "Wargames"),
+    MSG_SCROLL_LOOP (4, "Loop");
 
     private final byte modeId;
     private final String modeName;

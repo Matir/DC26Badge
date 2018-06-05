@@ -66,6 +66,12 @@
 #define APP_ADV_SLOW_INTERVAL   0x0c80  // 2 sec in 0.625ms time slice
 #define APP_ADV_SLOW_TIMEOUT    180000
 
+#if defined(BOARD_BADGE)
+# define ADV_LED_PIN  10
+#elif defined(BOARD_PROTO)
+# define ADV_LED_PIN  20
+#endif
+
 typedef struct _ble_badge_service_s ble_badge_service_t;
 
 typedef void (*ble_message_write_handler_t) (uint16_t, ble_badge_service_t *, uint8_t);

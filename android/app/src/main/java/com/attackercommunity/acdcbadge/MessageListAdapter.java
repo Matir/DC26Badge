@@ -139,6 +139,13 @@ public class MessageListAdapter extends RecyclerView.Adapter<MessageListAdapter.
         notifyDataSetChanged();
     }
 
+    public void setCheckedPosition(int position) {
+        if (position < 0 || position > getItemCount())
+            return;
+        checkedPosition = position;
+        notifyDataSetChanged();
+    }
+
     @Override
     public MessageListAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         ConstraintLayout layout = (ConstraintLayout) LayoutInflater.from(parent.getContext())
