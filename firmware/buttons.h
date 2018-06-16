@@ -35,10 +35,12 @@ typedef void ble_callback_t(uint8_t);
 
 void buttons_init(led_display *);
 void joystick_set_enable(uint8_t enable);
+void joystick_set_selftest(uint8_t enabled);
 #define joystick_enable() joystick_set_enable(true)
 #define joystick_disable() joystick_set_enable(false)
 void buttons_set_ble_accept_callback(ble_callback_t *ble_cb);
 bool is_center_pushed();
+int get_buttons_pushed();
 
 #define DEF_BUTTON(n, handler) { \
   .pin_no = (n), \

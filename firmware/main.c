@@ -2,8 +2,8 @@
 
 #include "nordic_common.h"
 #include "nrf.h"
-#include "app_error.h"
 
+#include "app_error.h"
 #include "app_scheduler.h"
 #include "app_timer.h"
 #include "nrf_crypto.h"
@@ -14,9 +14,10 @@
 #include "nrfx_twim.h"
 #include "nrfx_gpiote.h"
 
-#include "led_display.h"
 #include "ble_manager.h"
 #include "buttons.h"
+#include "led_display.h"
+#include "selftest.h"
 #include "storage.h"
 
 #ifndef NRFX_TWIM0_ENABLED
@@ -84,6 +85,7 @@ static inline void crypto_init() {
 }
 
 int main(void) {
+  bool need_selftest = false;
   nrfx_twim_t twi_master = NRFX_TWIM_INSTANCE(0);
 
   log_init();
@@ -104,7 +106,6 @@ int main(void) {
   init_led_display(&display, &twi_master, 0x70);
   display_on(&display);
   display_set_brightness(&display, 8);
-  display_set_message(&display, NULL);
 
   NRF_LOG_INFO("Setting up buttons.");
   buttons_init(&display);
@@ -112,10 +113,19 @@ int main(void) {
     NRF_LOG_INFO("Resetting device!");
     storage_erase_all();
     NRF_LOG_INFO("Done!");
+    need_selftest = true;
+  }
+
+  need_selftest = need_selftest || storage_check_firstboot();
+
+  if (need_selftest) {
+    run_selftest(&display);
+    storage_finish_firstboot();
   }
 
   // Deferred until after possible reset
   display_load_storage();
+  display_set_message(&display, NULL);
 
   NRF_LOG_INFO("Setting up BLE.");
   ble_stack_init(&display);

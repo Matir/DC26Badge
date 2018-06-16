@@ -36,6 +36,22 @@ void storage_erase_all() {
   while(in_erase);
 }
 
+bool storage_check_firstboot() {
+  int tmpbuf;
+  int len = sizeof(tmpbuf);
+  ret_code_t rv = storage_get(
+      &tmpbuf, &len, FILE_ID_METADATA, RECORD_ID_FIRSTBOOT);
+  if (rv != NRF_SUCCESS || len != sizeof(tmpbuf))
+    return true;
+  return tmpbuf != FIRSTBOOT_MAGIC;
+}
+
+void storage_finish_firstboot() {
+  int flag = FIRSTBOOT_MAGIC;
+  storage_save(
+      &flag, sizeof(flag), FILE_ID_METADATA, RECORD_ID_FIRSTBOOT);
+}
+
 // Returns true so long as more are to be done
 static bool storage_erase_next(bool init) {
   static uint16_t file;

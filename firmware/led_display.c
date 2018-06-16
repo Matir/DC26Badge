@@ -367,6 +367,32 @@ void display_dec_brightness(led_display *disp) {
 }
 
 /**
+ * Run a selftest step
+ */
+void display_selftest_next(led_display *disp) {
+  static uint8_t segment = 0;
+  static uint8_t dispchar = 0;
+
+  if (++segment >= 15) {
+    segment = 0;
+    if (++dispchar >= LED_DISPLAY_WIDTH)
+      dispchar = 0;
+  }
+
+  disp->buf[0] = CMD_WRITE_RAM;  // Reset memory address for map
+  for (int i=0; i < LED_DISPLAY_WIDTH; i++) {
+    if (i != dispchar) {
+      disp->buf[i*2+1] = 0;
+      disp->buf[i*2+2] = 0;
+      continue;
+    }
+    disp->buf[i*2+1] = (1 << segment) & 0xFF;
+    disp->buf[i*2+2] = (1 << segment) >> 8;
+  }
+  display_i2c_send(disp, disp->buf, 17);
+}
+
+/**
  * Load from storage
  */
 ret_code_t display_load_storage() {

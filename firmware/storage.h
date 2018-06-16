@@ -8,9 +8,12 @@
 
 #define FILE_ID_METADATA          0x0001
 #define RECORD_ID_DEVICE_NAME     0x0001
+#define RECORD_ID_FIRSTBOOT       0x0002
 
 #define FILE_ID_MESSAGES          0x0002
 #define RECORD_ID_MESSAGE_BASE    0x0001
+
+#define FIRSTBOOT_MAGIC           0xfadec0de
 
 #ifdef DEBUG
 #define STORAGE_DEBUG
@@ -18,6 +21,8 @@
 
 void storage_init();
 void storage_erase_all();
+bool storage_check_firstboot();
+void storage_finish_firstboot();
 
 // Load a message from flash
 ret_code_t get_message(void *dest, int *len, uint16_t id);

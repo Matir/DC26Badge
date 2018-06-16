@@ -98,6 +98,7 @@ SRC_FILES += \
   $(PROJ_DIR)/ble_evt.c \
   $(PROJ_DIR)/buttons.c \
   $(PROJ_DIR)/storage.c \
+  $(PROJ_DIR)/selftest.c \
 
 # Include folders common to all targets
 INC_FOLDERS += \

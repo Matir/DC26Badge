@@ -13,6 +13,7 @@ static void handle_joystick_button(uint8_t pin_no, uint8_t button_action);
 static void handle_ble_button(uint8_t pin_no, uint8_t button_action);
 
 static bool joystick_enabled = 0;
+static bool selftest_enabled = 0;
 static ble_callback_t *ble_accept_cb = NULL;
 static led_display *display = NULL;
 
@@ -33,6 +34,10 @@ void joystick_set_enable(uint8_t enabled) {
   joystick_enabled = enabled;
 }
 
+void joystick_set_selftest(uint8_t enabled) {
+  selftest_enabled = enabled;
+}
+
 void buttons_set_ble_accept_callback(ble_callback_t *ble_cb) {
   ble_accept_cb = ble_cb;
 }
@@ -41,7 +46,20 @@ bool is_center_pushed() {
   return app_button_is_pushed(0);
 }
 
+int get_buttons_pushed() {
+  int rv = 0;
+  int buttons[] = {JOYSTICK_CENTER, JOYSTICK_UP, JOYSTICK_LEFT, JOYSTICK_RIGHT, JOYSTICK_DOWN};
+  for (int i = 0; i<ARRAY_SIZE(buttons); i++) {
+    if (app_button_is_pushed(i)) {
+      rv |= 1 << buttons[i];
+    }
+  }
+  return rv;
+}
+
 static void handle_joystick_button(uint8_t pin_no, uint8_t button_action) {
+  if (selftest_enabled)
+    return;
   static uint32_t button_down_time;
   if (button_action == APP_BUTTON_PUSH)
     button_down_time = app_timer_cnt_get();
