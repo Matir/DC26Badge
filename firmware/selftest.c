@@ -76,5 +76,6 @@ void run_selftest(led_display *disp) {
   };
   display_set_message(disp, &pass);
   nrf_delay_ms(1000);
+  joystick_set_selftest(false);
   return;
 }
