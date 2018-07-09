@@ -1,6 +1,6 @@
 PROJECT_NAME     := ac_dc26badge
 TARGETS          := nrf52810_xxaa
-BOARD						 ?= PROTO
+BOARD						 ?= BADGE
 OUTPUT_DIRECTORY := _build/$(BOARD)
 
 SDK_ROOT := sdk/

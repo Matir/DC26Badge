@@ -43,12 +43,12 @@ static const char scroll_loop_separator[] = SCROLL_LOOP_SEPARATOR;
 led_message message_set[NUM_MESSAGES] = {
   {
     .message = "HACK THE PLANET",
-    .update = MSG_SCROLL,
+    .update = MSG_SCROLL_LOOP,
     .speed = 8,
   },
   {
     .message = "HACK ALL THE THINGS",
-    .update = MSG_SCROLL,
+    .update = MSG_SCROLL_LOOP,
     .speed = 8,
   }
 };
