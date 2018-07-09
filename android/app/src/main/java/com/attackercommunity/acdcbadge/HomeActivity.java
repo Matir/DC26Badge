@@ -54,10 +54,12 @@ public class HomeActivity extends AppCompatActivity {
         // Setup the recycler view
         RecyclerView recyclerView = (RecyclerView) findViewById(R.id.badge_recycler);
         recyclerView.setHasFixedSize(true);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(layoutManager);
         mBadgeListAdapter = new BadgeListAdapter(mRootView, this);
         recyclerView.setAdapter(mBadgeListAdapter);
-        DividerItemDecoration decoration = new DividerItemDecoration(this, recyclerView.getLayoutDirection());
+        DividerItemDecoration decoration = new DividerItemDecoration(
+                recyclerView.getContext(), layoutManager.getOrientation());
         recyclerView.addItemDecoration(decoration);
 
         // Prompt for bluetooth if needed
