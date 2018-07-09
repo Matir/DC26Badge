@@ -91,6 +91,7 @@ public class BadgeListAdapter extends RecyclerView.Adapter<BadgeListAdapter.View
         holder.mDevice = dev;
         holder.mDisplay.setAddress(dev.getAddress());
         holder.mDisplay.setDeviceName(dev.getName());
+        holder.mDisplay.setBonded(dev.getBondState() == BluetoothDevice.BOND_BONDED);
     }
 
     @Override
@@ -202,6 +203,7 @@ public class BadgeListAdapter extends RecyclerView.Adapter<BadgeListAdapter.View
         private Context mCtx;
         private TextView mNameView;
         private TextView mAddressView;
+        private TextView mBondedView;
 
         public DeviceDisplayLayout(Context ctx) {
             super(ctx);
@@ -231,13 +233,18 @@ public class BadgeListAdapter extends RecyclerView.Adapter<BadgeListAdapter.View
             mAddressView.setText(address);
         }
 
+        public void setBonded(boolean bonded) {
+            if (bonded) {
+                mBondedView.setVisibility(VISIBLE);
+            } else {
+                mBondedView.setVisibility(GONE);
+            }
+        }
+
         public void setupView() {
-            TextView v = findViewById(R.id.deviceIconView);
-            v.setGravity(Gravity.CENTER);
-            Typeface font = FontFoundry.Get().getTypeface(mCtx, "fontawesome-solid.otf");
-            v.setTypeface(font);
             mNameView = (TextView) findViewById(R.id.badge_name);
             mAddressView = (TextView) findViewById(R.id.badge_address);
+            mBondedView = (TextView) findViewById(R.id.icon_lock);
             // Force redraw
             invalidate();
         }

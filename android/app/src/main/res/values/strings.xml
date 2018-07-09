@@ -6,5 +6,6 @@
     <string name="change">Change</string>
     <string name="icon_android">&#xf17b;</string>
     <string name="icon_globe">&#xf0ac;</string>
+    <string name="icon_lock">&#xf023;</string>
     <string name="no_badges">No Badges Were Found</string>
 </resources>
