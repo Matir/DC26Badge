@@ -74,6 +74,9 @@ public class BadgeSetupActivity extends AppCompatActivity
         mMessageView.setLayoutManager(recyclerManager);
         mMessageAdapter = new MessageListAdapter(mMessageChanger);
         mMessageView.setAdapter(mMessageAdapter);
+
+        // Disable buttons until we're connected
+        setInterfaceEnabled(false);
     }
 
     private void findViews() {
@@ -98,6 +101,17 @@ public class BadgeSetupActivity extends AppCompatActivity
     protected void onStop() {
         super.onStop();
         mBadge.close();
+    }
+
+    /*
+     * Enable/disable controls in bulk.
+     */
+    private void setInterfaceEnabled(boolean enabled) {
+        mChangeNameButton.setEnabled(enabled);
+        mBadgeDisplaySwitch.setEnabled(enabled);
+        mBadgeBrightnessBar.setEnabled(enabled);
+        mCancelButton.setEnabled(enabled);
+        mSaveButton.setEnabled(enabled);
     }
 
     private void displayErrorSnackbar(final String message) {
@@ -134,6 +148,9 @@ public class BadgeSetupActivity extends AppCompatActivity
 
                         // Show the selected message
                         mMessageAdapter.setCheckedPosition(mBadge.getCurrentMessage());
+
+                        // Ensure controls are enabled
+                        setInterfaceEnabled(true);
                     } finally {
                         mInRefresh = false;
                     }

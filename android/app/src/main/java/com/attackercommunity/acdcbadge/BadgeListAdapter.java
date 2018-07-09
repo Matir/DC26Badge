@@ -106,7 +106,7 @@ public class BadgeListAdapter extends RecyclerView.Adapter<BadgeListAdapter.View
                 return;
             }
             mIsScanning = true;
-            showHideProgress(true);
+            showHideProgress(true, false);
             mDeviceIds.clear();
             mDevices.clear();
         }
@@ -131,7 +131,7 @@ public class BadgeListAdapter extends RecyclerView.Adapter<BadgeListAdapter.View
         return dev.getBondState() == BluetoothDevice.BOND_BONDED;
     }
 
-    private void showHideProgress(final boolean show) {
+    private void showHideProgress(final boolean showSpinner, final boolean showNoBadges) {
         if (mContainingView == null)
             return;
         mContainingView.post(new Runnable() {
@@ -140,11 +140,19 @@ public class BadgeListAdapter extends RecyclerView.Adapter<BadgeListAdapter.View
                 View view = mContainingView.findViewById(R.id.scanning_loading);
                 if (view == null)
                     return;
-                if (show) {
+                if (showSpinner) {
                     Log.d(TAG, "Showing spinner.");
                     view.setVisibility(View.VISIBLE);
                 } else {
                     Log.d(TAG, "Hiding spinner.");
+                    view.setVisibility(View.GONE);
+                }
+                view = mContainingView.findViewById(R.id.no_badges_text);
+                if (view == null)
+                    return;
+                if (showNoBadges) {
+                    view.setVisibility(View.VISIBLE);
+                } else {
                     view.setVisibility(View.GONE);
                 }
             }
@@ -162,7 +170,8 @@ public class BadgeListAdapter extends RecyclerView.Adapter<BadgeListAdapter.View
             synchronized (BadgeListAdapter.this) {
                 mIsScanning = false;
             }
-            showHideProgress(false);
+            boolean showNoBadges = (getItemCount() == 0);
+            showHideProgress(false, showNoBadges);
         }
 
         public void onBLEDevice(BluetoothDevice device){

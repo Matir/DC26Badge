@@ -14,4 +14,21 @@
         android:layout_height="match_parent">
 
     </android.support.v7.widget.RecyclerView>
+
+    <TextView
+        android:id="@+id/no_badges_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:text="@string/no_badges"
+        android:textAppearance="@android:style/TextAppearance.Material.Large"
+        android:visibility="visible"
+        app:layout_constraintBottom_toBottomOf="@+id/badge_recycler"
+        app:layout_constraintEnd_toEndOf="@+id/badge_recycler"
+        app:layout_constraintStart_toStartOf="@+id/badge_recycler"
+        app:layout_constraintTop_toTopOf="parent" />
+
 </android.support.constraint.ConstraintLayout>
