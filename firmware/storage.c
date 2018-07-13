@@ -63,13 +63,16 @@ static bool storage_erase_next(bool init) {
   for (;file < FILE_MAX;file++) {
     fds_record_desc_t desc;
     fds_find_token_t token={0};
-    rv = fds_record_find_in_file(file, &desc, &token);
-    if (rv == FDS_ERR_NOT_FOUND)
-      continue;
+    do {
+      // Loop over all records in the file
+      rv = fds_record_find_in_file(file, &desc, &token);
+      if (rv != FDS_SUCCESS)
+        break;
 
-    rv = fds_file_delete(file);
-    if (rv == FDS_ERR_NO_SPACE_IN_QUEUES)
-      return true;
+      rv = fds_file_delete(file);
+      if (rv == FDS_ERR_NO_SPACE_IN_QUEUES)
+        return true;
+    } while(1);
   }
 
   return false;
