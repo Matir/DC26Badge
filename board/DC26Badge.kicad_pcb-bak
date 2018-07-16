@@ -2,7 +2,7 @@
 
   (general
     (thickness 1.6)
-    (drawings 4)
+    (drawings 5)
     (tracks 520)
     (zones 0)
     (modules 21)
@@ -2346,6 +2346,7 @@
       (xy -2.620173 1.933271) (xy -2.53664 1.952468)) (layer F.SilkS) (width 0.01))
   )
 
+  (gr_line (start 135.6 54.6) (end 135.6 57.6) (layer F.SilkS) (width 0.2))
   (gr_text "GND\n\nSWDCLK\n\nSWDIO\n\nVCC" (at 159.6 40.6 90) (layer F.SilkS)
     (effects (font (size 0.8 0.8) (thickness 0.12)) (justify left))
   )

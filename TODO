@@ -1,11 +1,18 @@
-- Board
-  - Assembly
 - Firmware
-  - BLE Status Indicator
+  - Fill out default messages
+    - WARGAMES
+    - ???
+- Board
+  - Serialize
+  - Program
+  - Test
+  - Fix?
+  - Trim Leads
+  - Wash (Alcohol)
+  - Foam
 - App
-  - Badge configuration
-  - Show a "no badges in range" error
-  - Special icon for bonded
-  - Thin line between devices
   - Icon for App (Globe + Smiley?)
-  - Rate limit slider
+  - Timeout on connecting to badge
+  - Publish
+    - Quality Guidelines
+- Solder issues on 0x02 chip?
