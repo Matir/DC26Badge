@@ -78,8 +78,6 @@ public class BadgeListAdapter extends RecyclerView.Adapter<BadgeListAdapter.View
 
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
-        //TODO: remove debugging 2x size
-        position /= 2;
         BluetoothDevice dev;
         synchronized (this) {
             if ((position < 0) || (position >= mDeviceIds.size())) {
@@ -96,8 +94,7 @@ public class BadgeListAdapter extends RecyclerView.Adapter<BadgeListAdapter.View
 
     @Override
     public int getItemCount() {
-        //TODO: remove debugging 2x size
-        return mDevices.size()*2;
+        return mDevices.size();
     }
 
     public void refreshView(Context ctx) {
