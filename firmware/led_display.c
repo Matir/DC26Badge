@@ -50,6 +50,16 @@ led_message message_set[NUM_MESSAGES] = {
     .message = "HACK ALL THE THINGS",
     .update = MSG_SCROLL_LOOP,
     .speed = 8,
+  },
+  {
+    .message = "WARGAMES",
+    .update = MSG_WARGAMES,
+    .speed = 8,
+  },
+  {
+    .message = "ATTACKER COMMUNITY",
+    .update = MSG_SCROLL_LOOP,
+    .speed = 8,
   }
 };
 
