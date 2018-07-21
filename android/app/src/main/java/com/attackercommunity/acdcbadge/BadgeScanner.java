@@ -39,7 +39,7 @@ public class BadgeScanner implements IBadgeScanner {
         final BluetoothLeScanner scanner = adapter.getBluetoothLeScanner();
         ScanSettings.Builder ssBuilder = new ScanSettings.Builder();
         ssBuilder.setReportDelay(Constants.ScanDelayMillis);
-        ssBuilder.setScanMode(ScanSettings.SCAN_MODE_BALANCED);
+        ssBuilder.setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY);
         Log.i(TAG, "Starting BLE Scan");
         mCallback = new BadgeScannerScanCallback(resultCallback);
         scanner.startScan(

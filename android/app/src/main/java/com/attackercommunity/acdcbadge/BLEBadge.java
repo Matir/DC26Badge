@@ -464,6 +464,7 @@ public final class BLEBadge {
                 int newState = intent.getIntExtra(
                         BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE);
                 BluetoothDevice affected = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                Log.d(TAG, "New bond state: " + newState + " device: " + affected.getAddress());
                 if (newState == BluetoothDevice.BOND_BONDED && affected.equals(mDevice)) {
                     connect();
                 }
