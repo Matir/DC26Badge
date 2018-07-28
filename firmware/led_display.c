@@ -153,7 +153,8 @@ static void display_update(led_display *disp) {
 
   switch (msg->update) {
     case MSG_STATIC:
-      display_text(disp, (uint8_t *)msg->message);
+      strncpy(buf, msg->message, LED_DISPLAY_WIDTH);
+      display_text(disp, (uint8_t *)buf);
       break;
 
     case MSG_SCROLL:

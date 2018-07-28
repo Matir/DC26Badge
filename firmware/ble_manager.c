@@ -104,7 +104,7 @@ void ble_main(void) {
 
 void ble_manager_start_advertising() {
   ble_advertising_setup();
-#ifdef DEBUG
+#ifdef BLE_ADVERTISE_37
   MASK_CHANNEL(m_advertising.adv_params.channel_mask, 38);
   MASK_CHANNEL(m_advertising.adv_params.channel_mask, 39);
 #endif
