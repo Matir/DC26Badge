@@ -91,9 +91,13 @@ public class BadgeScanner implements IBadgeScanner {
         }
 
         private void handleScanResult(ScanResult result) {
-            BluetoothDevice dev = result.getDevice();
-            Log.d(TAG, "Scan saw device with name " + dev.getName() + " " + dev.getAddress());
-            mCallback.onBLEDevice(dev);
+            final BluetoothDevice dev = result.getDevice();
+            String name = dev.getName();
+            if (name == null) {
+                name = result.getScanRecord().getDeviceName();
+            }
+            Log.d(TAG, "Scan saw device with name " + name + " " + dev.getAddress());
+            mCallback.onBLEDevice(dev, name);
         }
     }
 }

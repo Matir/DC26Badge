@@ -18,8 +18,10 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.Set;
 
 /*
@@ -30,6 +32,7 @@ public class BadgeListAdapter extends RecyclerView.Adapter<BadgeListAdapter.View
     private static final String TAG = "BadgeListAdapter";
     private ArrayList<BluetoothDevice> mDevices;
     private Set<String> mDeviceIds;
+    private Map<String, String> mDeviceNames = new HashMap<>();
     private Activity mContainingActivity = null;
     private View mContainingView = null;
     private boolean mIsScanning = false;
@@ -88,7 +91,14 @@ public class BadgeListAdapter extends RecyclerView.Adapter<BadgeListAdapter.View
         }
         holder.mDevice = dev;
         holder.mDisplay.setAddress(dev.getAddress());
-        holder.mDisplay.setDeviceName(dev.getName());
+        String name = dev.getName();
+        if (name == null) {
+            name = mDeviceNames.get(dev.getAddress());
+        }
+        if (name == null) {
+            name = "DC26 Badge";
+        }
+        holder.mDisplay.setDeviceName(name);
         holder.mDisplay.setBonded(dev.getBondState() == BluetoothDevice.BOND_BONDED);
     }
 
@@ -172,13 +182,32 @@ public class BadgeListAdapter extends RecyclerView.Adapter<BadgeListAdapter.View
             showHideProgress(false, showNoBadges);
         }
 
-        public void onBLEDevice(BluetoothDevice device){
+        public void onBLEDevice(BluetoothDevice device, String name){
+            final String address = device.getAddress();
             synchronized(BadgeListAdapter.this) {
-                if (mDeviceIds.contains(device.getAddress())) {
+                if (name != null) {
+                    mDeviceNames.put(address, name);
+                }
+                if (mDeviceIds.contains(address)) {
                     // Already have the device.
+                    BluetoothDevice oldDevice = null;
+                    for (BluetoothDevice testDevice : mDevices) {
+                        if (testDevice.getAddress().equals(device.getAddress())) {
+                            oldDevice = testDevice;
+                            break;
+                        }
+                    }
+                    if (oldDevice != null) {
+                        Log.d(TAG, "Device already existed, comparing (old vs new).");
+                        Log.d(TAG, "Address: " + oldDevice.getAddress() + " " + device.getAddress());
+                        Log.d(TAG, "Name: " + oldDevice.getName() + " " + device.getName());
+                        Log.d(TAG, "Bond state: " + oldDevice.getBondState() + " " + device.getBondState());
+                        Log.d(TAG, "Type: " + oldDevice.getType() + " " + device.getType());
+                        Log.d(TAG, "Hash Code: " + oldDevice.hashCode() + " " + device.hashCode());
+                    }
                     return;
                 }
-                mDeviceIds.add(device.getAddress());
+                mDeviceIds.add(address);
                 ListIterator<BluetoothDevice> it = mDevices.listIterator();
                 while(it.hasNext()) {
                     if (compareDevices(device, (BluetoothDevice) it.next()) < 0) {

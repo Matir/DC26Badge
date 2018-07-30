@@ -199,6 +199,8 @@ public final class BLEBadge {
         }
 
         if (mBluetoothGatt != null) {
+            Log.i(TAG, "Disconnecting from GATT Server.");
+            mBluetoothGatt.disconnect();
             mBluetoothGatt.close();
             mBluetoothGatt = null;
             mBadgeService = null;
@@ -463,14 +465,30 @@ public final class BLEBadge {
             if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(intent.getAction())) {
                 int newState = intent.getIntExtra(
                         BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE);
+                int reasonCode = intent.getIntExtra(
+                        "android.bluetooth.device.extra.REASON", -1);
                 BluetoothDevice affected = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                Log.d(TAG, "New bond state: " + newState + " device: " + affected.getAddress());
+                Log.d(TAG, "New bond state: " + BondStateName(newState) + " device: " + affected.getAddress());
+                if (reasonCode != -1) {
+                    Log.d(TAG, "Bond state reason: " + reasonCode);
+                }
                 if (newState == BluetoothDevice.BOND_BONDED && affected.equals(mDevice)) {
                     connect();
                 }
             }
         }
     };
+
+    private static final String BondStateName(int stateNum) {
+        if (stateNum == BluetoothDevice.BOND_BONDED) {
+            return "BOND_BONDED";
+        } else if (stateNum == BluetoothDevice.BOND_BONDING) {
+            return "BOND_BONDING";
+        } else if (stateNum == BluetoothDevice.BOND_NONE) {
+            return "BOND_NONE";
+        }
+        return "UNKNOWN";
+    }
 
     // Various GATT Callbacks
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
